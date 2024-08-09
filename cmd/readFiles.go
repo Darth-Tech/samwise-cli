@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"log/slog"
 	"os"
 	"regexp"
 	"strings"
@@ -37,8 +38,10 @@ func preProcessingSourceString(line string) (string, string) {
 	if tag != "" {
 		tag = strings.ReplaceAll(tag, "?ref=", "")
 	}
-	gitRepoLink = refTagRegex.ReplaceAllString(gitRepoLink, ".git")
+	slog.Debug("Git repo link before: " + gitRepoLink)
+	gitRepoLink = refTagRegex.ReplaceAllString(gitRepoLink, "")
 
+	slog.Debug("Git repo link after: " + gitRepoLink)
 	return gitRepoLink, tag
 }
 

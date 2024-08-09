@@ -7,19 +7,28 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/hashicorp/go-version"
 	"github.com/spf13/viper"
+	"log/slog"
 	"strings"
 ) // with go modules enabled (GO111MODULE=on or outside GOPATH)
 
 func cloneRepo(url string) *git.Repository {
+	slog.Debug("username: " + viper.GetString("github_username"))
+	slog.Debug("password: " + viper.GetString("github_key"))
+
+	/*var progressBarSetting *os.File = nil
+	if slog.LevelKey == slog.LevelDebug.String() {
+		progressBarSetting = os.Stdout
+	}*/
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: url,
 		Auth: &http.BasicAuth{
 			Username: viper.GetString("github_username"),
 			Password: viper.GetString("github_key"),
 		},
-		//Progress: os.Stdout,
 	})
 	if err != nil {
+		slog.Error("URL: " + url)
+		//Check(err)
 		return nil
 	}
 	return r
