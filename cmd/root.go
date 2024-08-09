@@ -17,7 +17,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -68,19 +68,19 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+		// home, err := os.UserHomeDir()
+		// cobra.CheckErr(err)
 
-		// Search config in home directory with name ".samwise" (without extension).
-		viper.AddConfigPath(home)
+		// Search config in current directory with name ".samwise" (without extension).
+		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")
-		viper.SetConfigName(".samwise")
+		viper.SetConfigName(".samwise.yaml")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stdout, "Using config file:", viper.ConfigFileUsed())
+		slog.Debug("Using config file:" + viper.ConfigFileUsed())
 	}
 }

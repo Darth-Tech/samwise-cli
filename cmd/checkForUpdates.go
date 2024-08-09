@@ -55,6 +55,7 @@ JSON format: [{
 				bar := progressbar.Default(int64(len(modules)))
 				for _, module := range modules {
 					bar.Add(1)
+					slog.Debug(module["repo"])
 					if !slices.Contains(listWritten, module["repo"]) {
 						tagsList := processGitRepo(module["repo"], module["current_version"])
 						if len(tagsList) > 0 {
@@ -82,6 +83,7 @@ func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
 	checkForUpdatesCmd.Flags().IntP("depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction.")
 	checkForUpdatesCmd.Flags().StringP("path", "p", ".", "The path for directory containing terraform code to extract modules from.")
 	checkForUpdatesCmd.Flags().String("git-repo", "g", "Git Repository to check module dependencies on.")
