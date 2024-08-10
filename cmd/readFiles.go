@@ -20,7 +20,6 @@ var (
 		"bitbucket":   regexp.MustCompile("source=\".*(bitbucket.org.+)\""),
 	}
 	moduleRepoList []map[string]string
-	refTagRegex    = regexp.MustCompile("(\\?ref=.+)")
 )
 
 func fixTrailingSlashForPath(path string) string {
