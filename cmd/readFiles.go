@@ -52,7 +52,6 @@ func processRepoLinksAndTags(path string) []map[string]string {
 		fullPath := path + "/" + file.Name()
 		file, err := os.Open(fullPath)
 		Check(err)
-		defer file.Close()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -63,6 +62,7 @@ func processRepoLinksAndTags(path string) []map[string]string {
 			}
 
 		}
+		file.Close()
 	}
 	return moduleRepoList
 }

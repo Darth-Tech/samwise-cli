@@ -39,9 +39,11 @@ JSON format: [{
 		f, writer := CreateCSVReportFile(rootDir + "/module_dependency_report.csv")
 		slog.Debug("created " + rootDir + "/module_dependency_report.csv file")
 		defer f.Close()
-		writer.WriteString("repo_link,current_version,tag_list\n")
-		writer.Flush()
-		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
+		_, err := writer.WriteString("repo_link,current_version,tag_list\n")
+		Check(err)
+		err = writer.Flush()
+		Check(err)
+		err = filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
 			Check(err)
 			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
 			if d.IsDir() && !slices.Contains(directoriesToIgnore, d.Name()) {
