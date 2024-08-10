@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
 	"testing"
@@ -29,7 +28,6 @@ func TestHappyGetTags(t *testing.T) {
 	assert.NotEmpty(t, r, "readGit_files.go :: getTags :: r is nil")
 	assert.Empty(t, err, "readGit_files.go :: getTags :: err is not nil")
 	latestTags := getTags(r, "0.0.1")
-	fmt.Println(latestTags)
 	assert.NotEmpty(t, latestTags)
 	assert.Contains(t, latestTags, "0.1.0")
 	assert.Contains(t, latestTags, "0.2.1")
