@@ -17,6 +17,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"github.com/spf13/cobra/doc"
 	"log/slog"
 	"os"
 
@@ -40,8 +41,10 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	rootCmd.DisableAutoGenTag = true
+	err := doc.GenMarkdownTree(rootCmd, "./docs")
 
-	err := rootCmd.Execute()
+	err = rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
