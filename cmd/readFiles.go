@@ -103,7 +103,8 @@ func processRepoLinksAndTags(path string) []map[string]string {
 			}
 
 		}
-		f.Close()
+		err = f.Close()
+		Check(err)
 	}
 	return moduleRepoList
 }

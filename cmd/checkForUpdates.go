@@ -51,7 +51,8 @@ JSON format: [{
 				bar := progressbar.Default(int64(len(modules)))
 				slog.Debug("Path: " + path)
 				for _, module := range modules {
-					bar.Add(1)
+					err := bar.Add(1)
+					Check(err)
 					slog.Debug(module["repo"])
 					if !slices.Contains(listWritten, module["repo"]) {
 						tagsList, _ := processGitRepo(module["repo"], module["current_version"])

@@ -65,7 +65,6 @@ func processGitRepo(url string, currentVersionTag string) (string, error) {
 	repo, err := cloneRepo(url)
 	if repo != nil {
 		tagsList := getTags(repo, currentVersionTag)
-		//fmt.Println(tagsList)
 		return tagsList, nil
 	}
 	return "", err
