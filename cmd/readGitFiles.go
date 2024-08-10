@@ -1,24 +1,19 @@
 package cmd
 
 import (
+	"errors"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/hashicorp/go-version"
 	"github.com/spf13/viper"
+	"github.com/thundersparkf/samwise/cmd/errorHandlers"
 	"log/slog"
 	"strings"
 ) // with go modules enabled (GO111MODULE=on or outside GOPATH)
 
-func cloneRepo(url string) *git.Repository {
-	slog.Debug("username: " + viper.GetString("github_username"))
-	slog.Debug("password: " + viper.GetString("github_key"))
-
-	/*var progressBarSetting *os.File = nil
-	if slog.LevelKey == slog.LevelDebug.String() {
-		progressBarSetting = os.Stdout
-	}*/
+func cloneRepo(url string) (*git.Repository, error) {
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: url,
 		Auth: &http.BasicAuth{
@@ -27,11 +22,10 @@ func cloneRepo(url string) *git.Repository {
 		},
 	})
 	if err != nil {
-		slog.Error("URL: " + url)
-		//Check(err)
-		return nil
+		slog.Error("url: " + url)
+		return nil, errors.New(errorHandlers.CloningErrorPrefix + err.Error())
 	}
-	return r
+	return r, nil
 }
 
 func getTags(r *git.Repository, currentVersionTag string) string {
@@ -67,12 +61,12 @@ func getSemverGreaterThanCurrent(currentVersion string, versionToCheck string) b
 	return false
 
 }
-func processGitRepo(url string, currentVersionTag string) string {
-	repo := cloneRepo(url)
+func processGitRepo(url string, currentVersionTag string) (string, error) {
+	repo, err := cloneRepo(url)
 	if repo != nil {
 		tagsList := getTags(repo, currentVersionTag)
 		//fmt.Println(tagsList)
-		return tagsList
+		return tagsList, nil
 	}
-	return ""
+	return "", err
 }
