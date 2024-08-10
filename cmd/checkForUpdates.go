@@ -7,7 +7,6 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"github.com/thundersparkf/samwise/cmd/outputs"
 	"io/fs"
 	"log/slog"
@@ -31,8 +30,9 @@ JSON format: [{
              }]
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Debug("creating a CSV report...")
-		depth, rootDir, directoriesToIgnore := getParamsForCheckForUpdatesCMD(cmd.Flags())
+		slog.Debug("creating a report...")
+		depth, rootDir, directoriesToIgnore, outputFormat := getParamsForCheckForUpdatesCMD(cmd.Flags())
+		slog.Debug("output format: " + outputFormat)
 		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(depth)), slog.String("rootDir", rootDir), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
 		rootDir = fixTrailingSlashForPath(rootDir)
 		var modules []map[string]string
@@ -41,7 +41,7 @@ JSON format: [{
 			Check(err)
 			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
 			if d.IsDir() && !slices.Contains(directoriesToIgnore, d.Name()) {
-				slog.Debug("In directory " + path + "...")
+				slog.Debug("In directory " + path)
 				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+depth {
 					slog.Debug("...which is skipped")
 					return fs.SkipDir
@@ -49,6 +49,7 @@ JSON format: [{
 				path = fixTrailingSlashForPath(path)
 				modules = processRepoLinksAndTags(path)
 				bar := progressbar.Default(int64(len(modules)))
+				slog.Debug("Path: " + path)
 				for _, module := range modules {
 					bar.Add(1)
 					slog.Debug(module["repo"])
@@ -64,20 +65,22 @@ JSON format: [{
 			return nil
 		})
 		Check(err)
-		outputFormat, err := checkOutputFormat(viper.GetString("output_format"))
+		outputFormat, err = checkOutputFormat(outputFormat)
 		Check(err)
 		generateReport(modules, outputFormat, rootDir)
 	},
 }
 
-func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string) {
+func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string, string) {
 	depth, err := flags.GetInt("depth")
 	Check(err)
 	rootDir, err := flags.GetString("path")
 	Check(err)
 	directoriesToIgnore, err := flags.GetStringArray("ignore")
 	Check(err)
-	return depth, rootDir, directoriesToIgnore
+	output, err := flags.GetString("output")
+	Check(err)
+	return depth, rootDir, directoriesToIgnore, output
 }
 
 func generateReport(data []map[string]string, outputFormat string, path string) {
