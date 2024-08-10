@@ -1,19 +1,14 @@
 package cmd
 
-import "testing"
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 func TestReadDirectoryWithSlash(t *testing.T) {
-	if fixTrailingSlashForPath("./test_dir/") == "./test_dir" {
-		t.Logf("Success")
-	} else {
-		t.Errorf("expected %s received %s", fixTrailingSlashForPath("./test_dir"), "./test_dir")
-	}
+	assert.Equal(t, "./test_dir", fixTrailingSlashForPath("./test_dir/"), "slash removed at the end")
 }
 
 func TestReadDirectoryWithoutSlash(t *testing.T) {
-	if fixTrailingSlashForPath("./test_dir") == "./test_dir" {
-		t.Logf("Success")
-	} else {
-		t.Errorf("expected %s received %s", fixTrailingSlashForPath("./test_dir"), "./test_dir")
-	}
+	assert.Equal(t, "./test_dir", fixTrailingSlashForPath("./test_dir"), "no slash at the end")
 }
