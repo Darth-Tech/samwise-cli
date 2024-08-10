@@ -47,9 +47,17 @@ j J         /-;-A'-'|'--'-j\
 
 Available Commands:
 ```
-  checkForUpdates search for updates for terraform modules using in your code and generate a report in CSV format
+Available Commands:
+  checkForUpdates search for updates for terraform modules using in your code and generate a report
   completion      Generate the autocompletion script for the specified shell
   help            Help about any command
+
+Flags:
+      --config string   config file (default is $HOME/.samwise.yaml)
+  -h, --help            help for samwise
+  -t, --toggle          Help message for toggle
 ```
+
+For more details, checkout the ```docs``` folder or click [here](https://github.com/thundersparkf/samwise-cli/blob/main/docs/samwise.md)
 
 
