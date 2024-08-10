@@ -2,16 +2,25 @@ package cmd
 
 import (
 	"bufio"
+	"golang.org/x/exp/maps"
 	"log/slog"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
 )
 
 var (
-	moduleRepoList        []map[string]string
-	findModuleSourceRegex = regexp.MustCompile("source=\"git::(.+)\"")
-	refTagRegex           = regexp.MustCompile("(\\?ref=.+)")
+	// Regex to check if the line has "source=" in it
+	sourceLineRegex      = regexp.MustCompile("source=\"(.+)\"")
+	moduleSourceRegexMap = map[string]*regexp.Regexp{
+		"generic_git": regexp.MustCompile("source=\"git::(.+)\""),
+		"github":      regexp.MustCompile("source=\"(github.com.+)\""),
+		"https":       regexp.MustCompile("source=\"(https://.+)\""),
+		"bitbucket":   regexp.MustCompile("source=\".*(bitbucket.org.+)\""),
+	}
+	moduleRepoList []map[string]string
+	refTagRegex    = regexp.MustCompile("(\\?ref=.+)")
 )
 
 func fixTrailingSlashForPath(path string) string {
@@ -21,28 +30,61 @@ func fixTrailingSlashForPath(path string) string {
 	return path
 }
 
-func checkRegexMatchNotempty(match [][]string) string {
+func checkRegexMatchNotEmpty(match [][]string) string {
 	if len(match) > 0 && len(match[0][1]) > 0 {
 		return match[0][1]
 	}
 	return ""
+}
 
+func extractRefAndPath(sourceUrl string) (string, string) {
+	urlParsed, err := url.Parse(sourceUrl)
+	Check(err)
+	params, err := url.ParseQuery(urlParsed.RawQuery)
+	Check(err)
+	var refTag string
+	var rawUrl string
+	if urlParsed.Scheme != "" {
+		rawUrl = urlParsed.Scheme + "://"
+	}
+	rawUrl = rawUrl + urlParsed.Host + urlParsed.Path
+	if params.Has("ref") {
+		refTag = params.Get("ref")
+		return rawUrl, refTag
+	}
+	return rawUrl, ""
+}
+
+func extractModuleSource(line string) string {
+	keys := maps.Keys(moduleSourceRegexMap)
+	var match [][]string
+	var matchedString = ""
+	for _, sourceRegex := range keys {
+		match = moduleSourceRegexMap[sourceRegex].FindAllStringSubmatch(line, 1)
+		matchedString = checkRegexMatchNotEmpty(match)
+		if matchedString != "" {
+			break
+		}
+	}
+	return matchedString
 }
 
 func preProcessingSourceString(line string) (string, string) {
+	// Will help avoid running moduleSourceRegexMap on every string
 	line = strings.ReplaceAll(line, " ", "")
-	processedString := findModuleSourceRegex.FindAllStringSubmatch(line, -1)
-	gitRepoLink := checkRegexMatchNotempty(processedString)
-	refTag := refTagRegex.FindAllStringSubmatch(gitRepoLink, -1)
-	tag := checkRegexMatchNotempty(refTag)
-	if tag != "" {
-		tag = strings.ReplaceAll(tag, "?ref=", "")
+	sourceLineCheck := sourceLineRegex.FindAllStringSubmatch(line, -1)
+	if checkRegexMatchNotEmpty(sourceLineCheck) == "" {
+		return "", ""
+	} else {
+		repoLink := extractModuleSource(line)
+		slog.Debug("Git repo link before: " + repoLink)
+		var sourceUrl, refTag string
+		if repoLink != "" {
+			sourceUrl, refTag = extractRefAndPath(repoLink)
+		}
+		slog.Debug("Git repo link after: " + sourceUrl)
+		return sourceUrl, refTag
 	}
-	slog.Debug("Git repo link before: " + gitRepoLink)
-	gitRepoLink = refTagRegex.ReplaceAllString(gitRepoLink, "")
-
-	slog.Debug("Git repo link after: " + gitRepoLink)
-	return gitRepoLink, tag
 }
 
 func processRepoLinksAndTags(path string) []map[string]string {
@@ -50,19 +92,19 @@ func processRepoLinksAndTags(path string) []map[string]string {
 	Check(err)
 	for _, file := range files {
 		fullPath := path + "/" + file.Name()
-		file, err := os.Open(fullPath)
+		f, err := os.Open(fullPath)
 		Check(err)
-		scanner := bufio.NewScanner(file)
+		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			line := scanner.Text()
 			repo, tag := preProcessingSourceString(line)
-			// TODO: Shift left and avoid cloning duplicate
+			slog.Debug("Repo: " + repo)
 			if repo != "" {
 				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag})
 			}
 
 		}
-		file.Close()
+		f.Close()
 	}
 	return moduleRepoList
 }
