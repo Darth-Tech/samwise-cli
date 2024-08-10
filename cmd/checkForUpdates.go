@@ -22,11 +22,13 @@ var checkForUpdatesCmd = &cobra.Command{
 	Use:   "checkForUpdates",
 	Short: "search for updates for terraform modules using in your code and generate a report",
 	Long: `Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
-CSV format : repo_link | current_version | versions_available
+
+CSV format : repo_link | current_version | updates_available
+
 JSON format: [{
                 "repo_link": <repo_link>,
                 "current_version": <current version used in the code>,
-                "versions_available"
+                "updates_available"
              }]
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -57,7 +59,7 @@ JSON format: [{
 					if !slices.Contains(listWritten, module["repo"]) {
 						tagsList, _ := processGitRepo(module["repo"], module["current_version"])
 						if len(tagsList) > 0 {
-							module["tags_available_for_update"] = tagsList
+							module["updates_available"] = tagsList
 							listWritten = append(listWritten, module["repo"])
 						}
 					}

@@ -51,6 +51,7 @@ func TestUnhappyCreateCSVReportFileNoData(t *testing.T) {
 
 }
 
+// TODO: Add test case to ensure only non-empty "updates_available" values get written to report
 func TestUnhappyCreateCSVReportFileNilData(t *testing.T) {
 	CreateCSVReportFile(nil, ".")
 	results := readCsvFile("." + "/module_dependency_report.csv")

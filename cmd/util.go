@@ -20,13 +20,13 @@ func Check(err error) {
 
 func CreateCSVReportFile(data []map[string]string, path string) {
 	slog.Debug("creating " + path + "/module_dependency_report.csv file")
-	file2, err := os.Create(path + "/module_dependency_report.csv")
+	report, err := os.Create(path + "/module_dependency_report.csv")
 	if err != nil {
 		panic(err)
 	}
-	defer file2.Close()
+	defer report.Close()
 
-	writer := csv.NewWriter(file2)
+	writer := csv.NewWriter(report)
 	defer writer.Flush()
 	// this defines the header value and data values for the new csv file
 	headers := []string{"repo_link", "current_version", "updates_available"}
@@ -34,9 +34,11 @@ func CreateCSVReportFile(data []map[string]string, path string) {
 	err = writer.Write(headers)
 	Check(err)
 	for _, row := range data {
-		err := writer.Write([]string{row["repo_link"], row["current_version"], row["updates_available"]})
-		Check(err)
-		writer.Flush()
+		if len(row["updates_available"]) > 0 {
+			err := writer.Write([]string{row["repo"], row["current_version"], row["updates_available"]})
+			Check(err)
+			writer.Flush()
+		}
 	}
 	slog.Debug("created " + path + "/module_dependency_report.csv file")
 
