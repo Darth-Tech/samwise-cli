@@ -1,4 +1,4 @@
-module github.com/thundersparkf/samwise-cli
+module github.com/thundersparkf/samwise
 
 go 1.22
 

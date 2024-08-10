@@ -17,7 +17,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"github.com/thundersparkf/samwise-cli/cmd"
+	"github.com/thundersparkf/samwise/cmd"
 	"log/slog"
 )
 
