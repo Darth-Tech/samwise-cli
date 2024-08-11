@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -38,17 +39,20 @@ func CheckNonPanic(err error, message string, args ...any) bool {
 	}
 	return false
 }
-func generateReport(data []map[string]string, outputFormat string, path string) {
+func generateReport(data []map[string]string, outputFilename string, outputFormat string, path string) {
 	if outputFormat == outputs.CSV {
-		createCSVReportFile(data, path)
+		createCSVReportFile(data, path, outputFilename)
 	} else if outputFormat == outputs.JSON {
-		createJSONReportFile(data, path)
+		createJSONReportFile(data, path, outputFilename)
+	} else {
+		Check(errors.New("output format "+outputFormat+"not available"), "")
 	}
+
 }
 
-func createCSVReportFile(data []map[string]string, path string) {
-	slog.Debug("creating " + path + "/module_dependency_report.csv file")
-	reportFilePath := path + "/module_dependency_report.csv"
+func createCSVReportFile(data []map[string]string, path string, filename string) {
+	slog.Debug("creating " + path + "/" + filename + ".csv file")
+	reportFilePath := path + "/" + filename + ".csv"
 	report, err := os.Create(reportFilePath)
 	Check(err, "util :: createCSVReportFile :: unable to create file ", reportFilePath)
 	defer func(report *os.File) {
@@ -85,6 +89,13 @@ func checkOutputFormat(outputFormat string) (string, error) {
 	}
 }
 
+func checkOutputFilename(outputFilename string) string {
+	extension := filepath.Ext(outputFilename)
+	outputFilename = strings.ReplaceAll(outputFilename, extension, "")
+	return outputFilename
+
+}
+
 func readCsvFile(filePath string) [][]string {
 	f, err := os.Open(filePath)
 	Check(err, "util :: readCSVFile :: unable to read input file", filePath)
@@ -102,8 +113,8 @@ func readCsvFile(filePath string) [][]string {
 	return records
 }
 
-func createJSONReportFile(data []map[string]string, path string) {
-	reportFilePath := path + "/module_dependency_report.json"
+func createJSONReportFile(data []map[string]string, path string, filename string) {
+	reportFilePath := path + "/" + filename + ".json"
 	report, err := os.Create(reportFilePath)
 	Check(err, "unable to create file ", reportFilePath)
 	defer func(report *os.File) {

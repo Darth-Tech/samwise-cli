@@ -30,13 +30,39 @@ func TestUnhappyCheckOutputFormat(t *testing.T) {
 	assert.Equal(t, incorrectFormatTest, "")
 }
 
+func TestCheckOutputFilename(t *testing.T) {
+	assert.Equal(t, "./module", checkOutputFilename("./module.csv"))
+	assert.Equal(t, "./module_test", checkOutputFilename("./module_test.json"))
+	assert.Equal(t, "./module", checkOutputFilename("./module"))
+
+	assert.Equal(t, "module_test", checkOutputFilename("module_test.csv"))
+	assert.Equal(t, "", checkOutputFilename(".pdf"))
+}
+func TestGenerateReport(t *testing.T) {
+	data := []map[string]string{
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
+	}
+	generateReport(data, "module_dependency_report", "csv", ".")
+	resultsCSV := readCsvFile("." + "/module_dependency_report.csv")
+	assert.Equal(t, len(resultsCSV), 3, "csv report unable to generated")
+	generateReport(data, "module_dependency", "json", ".")
+	resultsJSON := readJSONFile("./module_dependency.json")
+	assert.Equal(t, len(resultsJSON.Report), 2, "json report unable to generated")
+	defer func() {
+		if r := recover(); r != nil {
+			assert.PanicsWithValue(t, "output format yaml not available", func() { generateReport(data, "module_dependency", "yaml", ".") }, "not panicking when incorrect output format is given")
+		}
+	}()
+}
+
 func TestHappyCreateCSVReportFile(t *testing.T) {
 	data := []map[string]string{
 		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
 		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
 	}
-	createCSVReportFile(data, ".")
-	results := readCsvFile("." + "/module_dependency_report.csv")
+	createCSVReportFile(data, ".", "module_report")
+	results := readCsvFile("." + "/module_report.csv")
 	fmt.Println(results)
 	assert.Equal(t, len(results), 3)
 	assert.Equal(t, data[0]["repo"], results[1][0], "repo link mismatch")
@@ -47,7 +73,7 @@ func TestHappyCreateCSVReportFile(t *testing.T) {
 
 func TestUnhappyCreateCSVReportFileNoData(t *testing.T) {
 	var data = make([]map[string]string, 0)
-	createCSVReportFile(data, ".")
+	createCSVReportFile(data, ".", "module_dependency_report")
 	results := readCsvFile("." + "/module_dependency_report.csv")
 	assert.Equal(t, len(results), 1)
 
@@ -55,7 +81,7 @@ func TestUnhappyCreateCSVReportFileNoData(t *testing.T) {
 
 // TODO: Add test case to ensure only non-empty "updates_available" values get written to report
 func TestUnhappyCreateCSVReportFileNilData(t *testing.T) {
-	createCSVReportFile(nil, ".")
+	createCSVReportFile(nil, ".", "module_dependency_report")
 	results := readCsvFile("." + "/module_dependency_report.csv")
 	assert.Equal(t, len(results), 1)
 
@@ -84,8 +110,8 @@ func TestHappyCreateJSONReportFileNoData(t *testing.T) {
 		{"repo_link": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
 		{"repo_link": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
 	}
-	createJSONReportFile(data, ".")
-	results := readJSONFile("." + "/module_dependency_report.json")
+	createJSONReportFile(data, ".", "module_dependency")
+	results := readJSONFile("." + "/module_dependency.json")
 	assert.Equal(t, len(results.Report), 2)
 	assert.Equal(t, results.Report[0].RepoLink, data[0]["repo_link"], "repo_link key is not matching")
 	assert.Equal(t, results.Report[0].CurrentVersion, data[0]["current_version"], "current_version key is not matching")
@@ -96,7 +122,7 @@ func TestHappyCreateJSONReportFileNoData(t *testing.T) {
 func TestUnhappyCreateJSONReportFileNoData(t *testing.T) {
 	var data = make([]map[string]string, 0)
 	var expectedReport = reportJson{[]jsonReport{}}
-	createJSONReportFile(data, ".")
+	createJSONReportFile(data, ".", "module_dependency_report")
 	results := readJSONFile("." + "/module_dependency_report.json")
 	assert.Equal(t, expectedReport, results, "report not empty")
 	assert.Empty(t, results.Report, "reports are non-zero")

@@ -32,7 +32,7 @@ JSON format: [{
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		slog.Debug("creating a report...")
-		depth, rootDir, directoriesToIgnore, outputFormat := getParamsForCheckForUpdatesCMD(cmd.Flags())
+		depth, rootDir, directoriesToIgnore, outputFormat, outputFilename := getParamsForCheckForUpdatesCMD(cmd.Flags())
 		slog.Debug("output format: " + outputFormat)
 		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(depth)), slog.String("rootDir", rootDir), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
 		rootDir = fixTrailingSlashForPath(rootDir)
@@ -71,11 +71,13 @@ JSON format: [{
 		Check(err, "checkForUpdates :: command :: unable to walk the directories")
 		outputFormat, err = checkOutputFormat(outputFormat)
 		Check(err, "checkForUpdates :: command :: output format error", outputFormat)
-		generateReport(modules, outputFormat, rootDir)
+		outputFilename = checkOutputFilename(outputFilename)
+		generateReport(modules, outputFilename, outputFormat, rootDir)
 	},
 }
 
-func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string, string) {
+// Fixed return of params depth, rootDir, directoriesToIgnore, output, outputFilename
+func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string, string, string) {
 	depth, err := flags.GetInt("depth")
 	Check(err, "checkForUpdates :: command :: depth argument error")
 	rootDir, err := flags.GetString("path")
@@ -84,7 +86,9 @@ func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string
 	Check(err, "checkForUpdates :: command :: ignore argument error")
 	output, err := flags.GetString("output")
 	Check(err, "checkForUpdates :: command :: output argument error")
-	return depth, rootDir, directoriesToIgnore, output
+	outputFilename, err := flags.GetString("output-filename")
+	Check(err, "checkForUpdates :: command :: output-filename argument error")
+	return depth, rootDir, directoriesToIgnore, output, outputFilename
 }
 
 func init() {
@@ -94,6 +98,7 @@ func init() {
 	checkForUpdatesCmd.Flags().String("git-repo", "g", "Git Repository to check module dependencies on.")
 	checkForUpdatesCmd.Flags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
 	checkForUpdatesCmd.Flags().StringP("output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
+	checkForUpdatesCmd.Flags().StringP("output-filename", "f", "module_report", "Output file name.")
 
 	rootCmd.AddCommand(checkForUpdatesCmd)
 
