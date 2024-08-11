@@ -21,6 +21,7 @@ type jsonReport struct {
 	RepoLink         string `json:"repo_Link"`
 	CurrentVersion   string `json:"current_version"`
 	UpdatesAvailable string `json:"updates_available"`
+	Error            string `json:"error"`
 }
 
 func Check(err error, message string, args ...any) {

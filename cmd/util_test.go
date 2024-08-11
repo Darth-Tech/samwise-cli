@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
 	"testing"
@@ -56,6 +55,22 @@ func TestGenerateReport(t *testing.T) {
 	}()
 }
 
+func TestGenerateFailureReport(t *testing.T) {
+	data := []map[string]string{
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "error": "random error"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
+	}
+	createJSONReportFile(data, ".", "failure_report")
+	results := readJSONFile("./failure_report.json")
+	assert.Equal(t, len(results.Report), 2)
+	assert.Equal(t, results.Report[0].RepoLink, data[0]["repo_link"], "repo_link key is not matching")
+	assert.Equal(t, results.Report[0].CurrentVersion, data[0]["current_version"], "current_version key is not matching")
+	assert.Equal(t, results.Report[0].UpdatesAvailable, data[0]["updates_available"], "updates_available key is not matching")
+	assert.Equal(t, results.Report[0].Error, data[0]["error"], "error key is not matching")
+
+	assert.Equal(t, results.Report[1].Error, data[1]["error"], "error key is not matching")
+
+}
 func TestHappyCreateCSVReportFile(t *testing.T) {
 	data := []map[string]string{
 		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
@@ -63,7 +78,6 @@ func TestHappyCreateCSVReportFile(t *testing.T) {
 	}
 	createCSVReportFile(data, ".", "module_report")
 	results := readCsvFile("." + "/module_report.csv")
-	fmt.Println(results)
 	assert.Equal(t, len(results), 3)
 	assert.Equal(t, data[0]["repo"], results[1][0], "repo link mismatch")
 	assert.Equal(t, data[0]["current_version"], results[1][1], "current_version mismatch")

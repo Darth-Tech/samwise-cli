@@ -37,6 +37,7 @@ JSON format: [{
 		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(depth)), slog.String("rootDir", rootDir), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
 		rootDir = fixTrailingSlashForPath(rootDir)
 		var modules []map[string]string
+		var failureList []map[string]string
 		var listWritten []string
 		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
 			Check(err, "checkForUpdates :: command :: ", path)
@@ -57,7 +58,15 @@ JSON format: [{
 						Check(err, "progressbar error")
 						slog.Debug(module["repo"])
 						if !slices.Contains(listWritten, module["repo"]) {
-							tagsList, _ := processGitRepo(module["repo"], module["current_version"])
+							tagsList, err := processGitRepo(module["repo"], module["current_version"])
+							if err != nil {
+								failureList = append(failureList, map[string]string{
+									"repo":              module["repo"],
+									"current_version":   module["current_version"],
+									"updates_available": tagsList,
+									"error":             err.Error(),
+								})
+							}
 							if len(tagsList) > 0 {
 								module["updates_available"] = tagsList
 								listWritten = append(listWritten, module["repo"])
@@ -73,6 +82,7 @@ JSON format: [{
 		Check(err, "checkForUpdates :: command :: output format error", outputFormat)
 		outputFilename = checkOutputFilename(outputFilename)
 		generateReport(modules, outputFilename, outputFormat, rootDir)
+		createJSONReportFile(failureList, rootDir, "failure_report")
 	},
 }
 
@@ -99,7 +109,10 @@ func init() {
 	checkForUpdatesCmd.Flags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
 	checkForUpdatesCmd.Flags().StringP("output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
 	checkForUpdatesCmd.Flags().StringP("output-filename", "f", "module_report", "Output file name.")
-
+	err := checkForUpdatesCmd.MarkFlagRequired("path")
+	if err != nil {
+		return
+	}
 	rootCmd.AddCommand(checkForUpdatesCmd)
 
 	// Here you will define your flags and configuration settings.
