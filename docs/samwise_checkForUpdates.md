@@ -5,11 +5,13 @@ search for updates for terraform modules using in your code and generate a repor
 ### Synopsis
 
 Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
-CSV format : repo_link | current_version | versions_available
+
+CSV format : repo_link | current_version | updates_available
+
 JSON format: [{
                 "repo_link": <repo_link>,
                 "current_version": <current version used in the code>,
-                "versions_available"
+                "updates_available"
              }]
 	
 
