@@ -14,6 +14,13 @@ func TestReadDirectoryWithoutSlash(t *testing.T) {
 	assert.Equal(t, "./test_dir", fixTrailingSlashForPath("./test_dir"), "no slash at the end")
 }
 
+func TestGetTagFromUrl(t *testing.T) {
+	assert.Equal(t, "1.0.0", getTagFromUrl("github.com/hashicorp/example?ref=1.0.0"), "ref param not extracted")
+	assert.Empty(t, getTagFromUrl("github.com/hashicorp/example.git"), "ref param found")
+	assert.Empty(t, getTagFromUrl("github.com/hashicorp/example?depth=1"), "ref param found")
+	assert.Empty(t, getTagFromUrl("https://github.com/hashicorp/example?depth=1"), "ref param found")
+	assert.Equal(t, "2.0.0", getTagFromUrl("https://github.com/hashicorp/example?ref=2.0.0"), "ref param not found")
+}
 func TestExtractRefAndPathRepo(t *testing.T) {
 	gitHubExampleRepo, _, _ := extractRefAndPath("github.com/hashicorp/example?ref=1.0.0")
 	assert.Equal(t, "github.com/hashicorp/example", gitHubExampleRepo, "readFiles :: extractRefAndPath :: repo :: "+gitHubExampleRepo)
