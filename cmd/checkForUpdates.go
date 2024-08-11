@@ -104,7 +104,7 @@ func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string
 func init() {
 	cobra.OnInitialize(initConfig)
 	checkForUpdatesCmd.Flags().IntP("depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction.")
-	checkForUpdatesCmd.Flags().String("path", "p", "The path for directory containing terraform code to extract modules from.")
+	checkForUpdatesCmd.Flags().String("path", "", "The path for directory containing terraform code to extract modules from.")
 	checkForUpdatesCmd.Flags().String("git-repo", "g", "Git Repository to check module dependencies on.")
 	checkForUpdatesCmd.Flags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
 	checkForUpdatesCmd.Flags().StringP("output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")

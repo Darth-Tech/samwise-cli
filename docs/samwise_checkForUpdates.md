@@ -28,7 +28,7 @@ samwise checkForUpdates [flags]
   -i, --ignore stringArray       Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
   -o, --output string            Output format. Supports "csv" and "json". Default value is csv. (default "csv")
   -f, --output-filename string   Output file name. (default "module_report")
-  -p, --path string              The path for directory containing terraform code to extract modules from. (default ".")
+      --path string              The path for directory containing terraform code to extract modules from.
 ```
 
 ### Options inherited from parent commands
