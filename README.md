@@ -3,7 +3,7 @@
 A CLI application to accompany on your terraform module journey and sharing your burden of module dependency updates, just as one brave Hobbit helped Frodo carry his :)
 
 
-
+[![Go Test](https://github.com/thundersparkf/samwise-cli/actions/workflows/go-test-workflow.yml/badge.svg)](https://github.com/thundersparkf/samwise-cli/actions/workflows/go-test-workflow.yml)
 
 ```
                        \ : /
