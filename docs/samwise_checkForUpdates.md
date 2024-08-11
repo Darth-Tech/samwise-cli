@@ -22,12 +22,13 @@ samwise checkForUpdates [flags]
 ### Options
 
 ```
-  -d, --depth int            Folder depth to search for modules in. Give -1 for a full directory extraction.
-      --git-repo string      Git Repository to check module dependencies on. (default "g")
-  -h, --help                 help for checkForUpdates
-  -i, --ignore stringArray   Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
-  -o, --output string        Output format. Supports "csv" and "json". Default value is csv. (default "csv")
-  -p, --path string          The path for directory containing terraform code to extract modules from. (default ".")
+  -d, --depth int                Folder depth to search for modules in. Give -1 for a full directory extraction.
+      --git-repo string          Git Repository to check module dependencies on. (default "g")
+  -h, --help                     help for checkForUpdates
+  -i, --ignore stringArray       Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
+  -o, --output string            Output format. Supports "csv" and "json". Default value is csv. (default "csv")
+  -f, --output-filename string   Output file name. (default "module_report")
+  -p, --path string              The path for directory containing terraform code to extract modules from. (default ".")
 ```
 
 ### Options inherited from parent commands
