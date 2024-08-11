@@ -40,10 +40,10 @@ JSON format: [{
 		var modules []map[string]string
 		var listWritten []string
 		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
-			Check(err)
+			Check(err, "checkForUpdates :: command :: ", path)
 			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
 			if d.IsDir() && !slices.Contains(directoriesToIgnore, d.Name()) {
-				slog.Debug("In directory " + path)
+				slog.Debug("checkForUpdates :: command :: in directory " + path)
 				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+depth {
 					slog.Debug("...which is skipped")
 					return fs.SkipDir
@@ -51,44 +51,46 @@ JSON format: [{
 				path = fixTrailingSlashForPath(path)
 				modules = processRepoLinksAndTags(path)
 				bar := progressbar.Default(int64(len(modules)))
-				slog.Debug("Path: " + path)
-				for _, module := range modules {
-					err := bar.Add(1)
-					Check(err)
-					slog.Debug(module["repo"])
-					if !slices.Contains(listWritten, module["repo"]) {
-						tagsList, _ := processGitRepo(module["repo"], module["current_version"])
-						if len(tagsList) > 0 {
-							module["updates_available"] = tagsList
-							listWritten = append(listWritten, module["repo"])
+				slog.Debug("checkForUpdates :: command :: path: " + path)
+				if modules != nil {
+					for _, module := range modules {
+						err := bar.Add(1)
+						Check(err, "progressbar error")
+						slog.Debug(module["repo"])
+						if !slices.Contains(listWritten, module["repo"]) {
+							tagsList, _ := processGitRepo(module["repo"], module["current_version"])
+							if len(tagsList) > 0 {
+								module["updates_available"] = tagsList
+								listWritten = append(listWritten, module["repo"])
+							}
 						}
 					}
 				}
 			}
 			return nil
 		})
-		Check(err)
+		Check(err, "checkForUpdates :: command :: unable to walk the directories")
 		outputFormat, err = checkOutputFormat(outputFormat)
-		Check(err)
+		Check(err, "checkForUpdates :: command :: output format error", outputFormat)
 		generateReport(modules, outputFormat, rootDir)
 	},
 }
 
 func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string, string) {
 	depth, err := flags.GetInt("depth")
-	Check(err)
+	Check(err, "checkForUpdates :: command :: depth argument error")
 	rootDir, err := flags.GetString("path")
-	Check(err)
+	Check(err, "checkForUpdates :: command :: path argument error")
 	directoriesToIgnore, err := flags.GetStringArray("ignore")
-	Check(err)
+	Check(err, "checkForUpdates :: command :: ignore argument error")
 	output, err := flags.GetString("output")
-	Check(err)
+	Check(err, "checkForUpdates :: command :: output argument error")
 	return depth, rootDir, directoriesToIgnore, output
 }
 
 func generateReport(data []map[string]string, outputFormat string, path string) {
 	if outputFormat == outputs.CSV {
-		CreateCSVReportFile(data, path)
+		createCSVReportFile(data, path)
 	}
 }
 

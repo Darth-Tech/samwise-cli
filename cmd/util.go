@@ -5,42 +5,50 @@ import (
 	"errors"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
 	"github.com/thundersparkf/samwise/cmd/outputs"
-	"log"
 	"log/slog"
 	"os"
 	"slices"
 	"strings"
 )
 
-func Check(err error) {
+func Check(err error, message string, args ...any) {
 	if err != nil {
+
+		slog.Error(message, slog.Any("errorArgs", args))
 		panic(err)
 	}
 }
 
-func CreateCSVReportFile(data []map[string]string, path string) {
-	slog.Debug("creating " + path + "/module_dependency_report.csv file")
-	report, err := os.Create(path + "/module_dependency_report.csv")
+func CheckNonPanic(err error, message string, args ...any) bool {
 	if err != nil {
-		panic(err)
+		slog.Error(message, slog.Any("errorArgs", args))
+		slog.Error(err.Error())
+		return true
 	}
+	return false
+}
+
+func createCSVReportFile(data []map[string]string, path string) {
+	slog.Debug("creating " + path + "/module_dependency_report.csv file")
+	reportFilePath := path + "/module_dependency_report.csv"
+	report, err := os.Create(reportFilePath)
+	Check(err, "unable to create file ", reportFilePath)
 	defer report.Close()
 
 	writer := csv.NewWriter(report)
 	defer writer.Flush()
-	// this defines the header value and data values for the new csv file
 	headers := []string{"repo_link", "current_version", "updates_available"}
 
 	err = writer.Write(headers)
-	Check(err)
+	Check(err, "unable to write headers to file", reportFilePath)
 	for _, row := range data {
 		if len(row["updates_available"]) > 0 {
-			err := writer.Write([]string{row["repo"], row["current_version"], row["updates_available"]})
-			Check(err)
+			err := writer.Write([]string{row["repo_link"], row["current_version"], row["updates_available"]})
+			Check(err, "util :: CreateCSVReportFile :: unable to write record to file", row["repo"], row["current_version"], row["updates_available"])
 			writer.Flush()
 		}
 	}
-	slog.Debug("created " + path + "/module_dependency_report.csv file")
+	slog.Debug("created " + reportFilePath)
 
 }
 
@@ -56,16 +64,12 @@ func checkOutputFormat(outputFormat string) (string, error) {
 
 func readCsvFile(filePath string) [][]string {
 	f, err := os.Open(filePath)
-	if err != nil {
-		log.Fatal("Unable to read input file "+filePath, err)
-	}
+	Check(err, "util :: readCSVFile :: unable to read input file", filePath)
 	defer f.Close()
 
 	csvReader := csv.NewReader(f)
 	records, err := csvReader.ReadAll()
-	if err != nil {
-		log.Fatal("Unable to parse file as CSV for "+filePath, err)
-	}
+	Check(err, "util :: readCSVFile :: unable to parse file as CSV", filePath)
 
 	return records
 }

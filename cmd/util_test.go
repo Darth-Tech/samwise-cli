@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
 	"testing"
@@ -34,8 +35,9 @@ func TestHappyCreateCSVReportFileNoData(t *testing.T) {
 		{"repo_link": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
 		{"repo_link": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
 	}
-	CreateCSVReportFile(data, ".")
+	createCSVReportFile(data, ".")
 	results := readCsvFile("." + "/module_dependency_report.csv")
+	fmt.Println(results)
 	assert.Equal(t, len(results), 3)
 	assert.Equal(t, results[1][0], data[0]["repo_link"])
 	assert.Equal(t, results[1][1], data[0]["current_version"])
@@ -45,7 +47,7 @@ func TestHappyCreateCSVReportFileNoData(t *testing.T) {
 
 func TestUnhappyCreateCSVReportFileNoData(t *testing.T) {
 	var data = make([]map[string]string, 0)
-	CreateCSVReportFile(data, ".")
+	createCSVReportFile(data, ".")
 	results := readCsvFile("." + "/module_dependency_report.csv")
 	assert.Equal(t, len(results), 1)
 
@@ -53,7 +55,7 @@ func TestUnhappyCreateCSVReportFileNoData(t *testing.T) {
 
 // TODO: Add test case to ensure only non-empty "updates_available" values get written to report
 func TestUnhappyCreateCSVReportFileNilData(t *testing.T) {
-	CreateCSVReportFile(nil, ".")
+	createCSVReportFile(nil, ".")
 	results := readCsvFile("." + "/module_dependency_report.csv")
 	assert.Equal(t, len(results), 1)
 

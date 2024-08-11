@@ -22,7 +22,7 @@ func cloneRepo(url string) (*git.Repository, error) {
 		},
 	})
 	if err != nil {
-		slog.Error("url: " + url)
+		slog.Error("readGitFiles :: cloneRepo :: url: " + url)
 		return nil, errors.New(errorHandlers.CloningErrorPrefix + err.Error())
 	}
 	return r, nil
@@ -31,7 +31,10 @@ func cloneRepo(url string) (*git.Repository, error) {
 func getTags(r *git.Repository, currentVersionTag string) string {
 	tags, err := r.Tags()
 	var tagsList []string
-	Check(err)
+	if err != nil {
+		slog.Error("readGitFiles :: getTags :: unable to get tags :: " + err.Error())
+		return ""
+	}
 	err = tags.ForEach(func(t *plumbing.Reference) error {
 		versionToCheck := strings.ReplaceAll(t.Name().String(), "refs/tags/", "")
 		if getSemverGreaterThanCurrent(currentVersionTag, versionToCheck) {

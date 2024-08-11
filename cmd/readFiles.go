@@ -38,15 +38,20 @@ func checkRegexMatchNotEmpty(match [][]string) string {
 
 func extractRefAndPath(sourceUrl string) (string, string) {
 	urlParsed, err := url.Parse(sourceUrl)
-	Check(err)
-	params, err := url.ParseQuery(urlParsed.RawQuery)
-	Check(err)
+	if CheckNonPanic(err, "readFiles :: extractRefAndPath :: unable to parse url", sourceUrl) {
+		return "", ""
+	}
+
 	var refTag string
 	var rawUrl string
 	if urlParsed.Scheme != "" {
 		rawUrl = urlParsed.Scheme + "://"
 	}
 	rawUrl = rawUrl + urlParsed.Host + urlParsed.Path
+	params, err := url.ParseQuery(urlParsed.RawQuery)
+	if CheckNonPanic(err, "readFiles :: extractRefAndPath :: unable to extract params ", sourceUrl, params) {
+		return rawUrl, ""
+	}
 	if params.Has("ref") {
 		refTag = params.Get("ref")
 		return rawUrl, refTag
@@ -88,23 +93,29 @@ func preProcessingSourceString(line string) (string, string) {
 
 func processRepoLinksAndTags(path string) []map[string]string {
 	files, err := os.ReadDir(fixTrailingSlashForPath(path))
-	Check(err)
+	if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to read directory", path) {
+		return nil
+	}
 	for _, file := range files {
 		fullPath := path + "/" + file.Name()
 		f, err := os.Open(fullPath)
-		Check(err)
+		if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to read file", path, fullPath) {
+			continue
+		}
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			line := scanner.Text()
 			repo, tag := preProcessingSourceString(line)
-			slog.Debug("Repo: " + repo)
+			slog.Debug("readFiles :: processRepoLinksAndTags :: repo url :: " + repo)
 			if repo != "" {
 				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag})
 			}
 
 		}
 		err = f.Close()
-		Check(err)
+		if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to close file", path, fullPath) {
+			continue
+		}
 	}
 	return moduleRepoList
 }
