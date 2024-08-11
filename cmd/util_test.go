@@ -60,3 +60,21 @@ func TestUnhappyCreateCSVReportFileNilData(t *testing.T) {
 	assert.Equal(t, len(results), 1)
 
 }
+
+func TestCheckError(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			assert.NotPanics(t, nil, func() { Check(nil, "testing non panic case") })
+			assert.PanicsWithValue(t, "test error", func() { Check(errors.New("test error"), "error testing") })
+			assert.PanicsWithValue(t, "test error", func() { Check(errors.New("test error"), "error testing", "testArg1", "testArg2") })
+		}
+	}()
+
+}
+
+func TestCheckNonPanic(t *testing.T) {
+	assert.Equal(t, true, CheckNonPanic(errors.New("non panic error triggered"), "testing triggering non panic error"))
+	assert.Equal(t, false, CheckNonPanic(nil, "testing triggering non panic error"))
+	assert.Equal(t, false, CheckNonPanic(nil, ""))
+
+}
