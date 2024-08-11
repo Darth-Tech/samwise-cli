@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 Dev
+Copyright © 2024 Agastya Dev Addepally (devagastya0@gmail.com)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

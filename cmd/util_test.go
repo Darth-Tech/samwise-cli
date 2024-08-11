@@ -95,7 +95,7 @@ func TestHappyCreateJSONReportFileNoData(t *testing.T) {
 
 func TestUnhappyCreateJSONReportFileNoData(t *testing.T) {
 	var data = make([]map[string]string, 0)
-	var expectedReport reportJson = reportJson{[]jsonReport{}}
+	var expectedReport = reportJson{[]jsonReport{}}
 	createJSONReportFile(data, ".")
 	results := readJSONFile("." + "/module_dependency_report.json")
 	assert.Equal(t, expectedReport, results, "report not empty")

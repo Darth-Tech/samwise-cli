@@ -50,8 +50,13 @@ func createCSVReportFile(data []map[string]string, path string) {
 	slog.Debug("creating " + path + "/module_dependency_report.csv file")
 	reportFilePath := path + "/module_dependency_report.csv"
 	report, err := os.Create(reportFilePath)
-	Check(err, "unable to create file ", reportFilePath)
-	defer report.Close()
+	Check(err, "util :: createCSVReportFile :: unable to create file ", reportFilePath)
+	defer func(report *os.File) {
+		err := report.Close()
+		if err != nil {
+			Check(err, "util :: createCSVReportFile :: unable to close file")
+		}
+	}(report)
 
 	writer := csv.NewWriter(report)
 	defer writer.Flush()
@@ -83,7 +88,12 @@ func checkOutputFormat(outputFormat string) (string, error) {
 func readCsvFile(filePath string) [][]string {
 	f, err := os.Open(filePath)
 	Check(err, "util :: readCSVFile :: unable to read input file", filePath)
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			Check(err, "util :: readCsvFile :: unable to close file")
+		}
+	}(f)
 
 	csvReader := csv.NewReader(f)
 	records, err := csvReader.ReadAll()
@@ -96,7 +106,12 @@ func createJSONReportFile(data []map[string]string, path string) {
 	reportFilePath := path + "/module_dependency_report.json"
 	report, err := os.Create(reportFilePath)
 	Check(err, "unable to create file ", reportFilePath)
-	defer report.Close()
+	defer func(report *os.File) {
+		err := report.Close()
+		if err != nil {
+			Check(err, "util :: createJSONReportFile :: unable to close file")
+		}
+	}(report)
 	reportString, err := json.Marshal(data)
 	Check(err, "util :: createJSONReportFile :: unable to marshal modules data")
 	var reportJsonObject []jsonReport
