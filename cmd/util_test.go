@@ -78,3 +78,26 @@ func TestCheckNonPanic(t *testing.T) {
 	assert.Equal(t, false, CheckNonPanic(nil, ""))
 
 }
+
+func TestHappyCreateJSONReportFileNoData(t *testing.T) {
+	data := []map[string]string{
+		{"repo_link": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
+		{"repo_link": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
+	}
+	createJSONReportFile(data, ".")
+	results := readJSONFile("." + "/module_dependency_report.json")
+	assert.Equal(t, len(results.Report), 2)
+	assert.Equal(t, results.Report[0].RepoLink, data[0]["repo_link"], "repo_link key is not matching")
+	assert.Equal(t, results.Report[0].CurrentVersion, data[0]["current_version"], "current_version key is not matching")
+	assert.Equal(t, results.Report[0].UpdatesAvailable, data[0]["updates_available"], "updates_available key is not matching")
+
+}
+
+func TestUnhappyCreateJSONReportFileNoData(t *testing.T) {
+	var data = make([]map[string]string, 0)
+	var expectedReport reportJson = reportJson{[]jsonReport{}}
+	createJSONReportFile(data, ".")
+	results := readJSONFile("." + "/module_dependency_report.json")
+	assert.Equal(t, expectedReport, results, "report not empty")
+	assert.Empty(t, results.Report, "reports are non-zero")
+}

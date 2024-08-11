@@ -91,6 +91,8 @@ func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string
 func generateReport(data []map[string]string, outputFormat string, path string) {
 	if outputFormat == outputs.CSV {
 		createCSVReportFile(data, path)
+	} else if outputFormat == outputs.JSON {
+		createJSONReportFile(data, path)
 	}
 }
 
