@@ -38,6 +38,13 @@ func CheckNonPanic(err error, message string, args ...any) bool {
 	}
 	return false
 }
+func generateReport(data []map[string]string, outputFormat string, path string) {
+	if outputFormat == outputs.CSV {
+		createCSVReportFile(data, path)
+	} else if outputFormat == outputs.JSON {
+		createJSONReportFile(data, path)
+	}
+}
 
 func createCSVReportFile(data []map[string]string, path string) {
 	slog.Debug("creating " + path + "/module_dependency_report.csv file")
@@ -54,7 +61,7 @@ func createCSVReportFile(data []map[string]string, path string) {
 	Check(err, "unable to write headers to file", reportFilePath)
 	for _, row := range data {
 		if len(row["updates_available"]) > 0 {
-			err := writer.Write([]string{row["repo_link"], row["current_version"], row["updates_available"]})
+			err := writer.Write([]string{row["repo"], row["current_version"], row["updates_available"]})
 			Check(err, "util :: CreateCSVReportFile :: unable to write record to file", row["repo"], row["current_version"], row["updates_available"])
 			writer.Flush()
 		}

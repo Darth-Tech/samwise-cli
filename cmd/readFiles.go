@@ -19,7 +19,9 @@ var (
 		"https":       regexp.MustCompile("source=\"(https://.+)\""),
 		"bitbucket":   regexp.MustCompile("source=\".*(bitbucket.org.+)\""),
 	}
-	moduleRepoList []map[string]string
+	submoduleRegex  = regexp.MustCompile("(.*/.*)//(.*)")
+	removeUrlParams = regexp.MustCompile("(\\?.*)")
+	moduleRepoList  []map[string]string
 )
 
 func fixTrailingSlashForPath(path string) string {
@@ -29,6 +31,21 @@ func fixTrailingSlashForPath(path string) string {
 	return path
 }
 
+// Returns base url and cleaned paths
+func extractSubmoduleFromSource(source string) (string, string) {
+	subModuleMatch := submoduleRegex.FindAllStringSubmatch(source, -1)
+	var baseUrl = ""
+	var path = ""
+	if len(subModuleMatch) > 0 && len(subModuleMatch[0][1]) > 0 {
+		baseUrl = subModuleMatch[0][1]
+	} else {
+		baseUrl = source
+	}
+	if len(subModuleMatch) > 0 && len(subModuleMatch[0][2]) > 0 {
+		path = subModuleMatch[0][2]
+	}
+	return baseUrl, path
+}
 func checkRegexMatchNotEmpty(match [][]string) string {
 	if len(match) > 0 && len(match[0][1]) > 0 {
 		return match[0][1]
@@ -36,27 +53,42 @@ func checkRegexMatchNotEmpty(match [][]string) string {
 	return ""
 }
 
-func extractRefAndPath(sourceUrl string) (string, string) {
-	urlParsed, err := url.Parse(sourceUrl)
-	if CheckNonPanic(err, "readFiles :: extractRefAndPath :: unable to parse url", sourceUrl) {
-		return "", ""
-	}
-
+// TODO Add tests
+func getTagFromUrl(source string) string {
 	var refTag string
-	var rawUrl string
-	if urlParsed.Scheme != "" {
-		rawUrl = urlParsed.Scheme + "://"
-	}
-	rawUrl = rawUrl + urlParsed.Host + urlParsed.Path
-	params, err := url.ParseQuery(urlParsed.RawQuery)
-	if CheckNonPanic(err, "readFiles :: extractRefAndPath :: unable to extract params ", sourceUrl, params) {
-		return rawUrl, ""
-	}
-	if params.Has("ref") {
+	refParams, err := url.Parse(source)
+	// TODO: Refactor
+	if CheckNonPanic(err, "readFiles :: extractRefAndPath :: unable to parse url for params") {
+		refTag = ""
+	} else {
+		params, err := url.ParseQuery(refParams.RawQuery)
+		if CheckNonPanic(err, "readFiles :: extractRefAndPath :: unable to parse url for params") {
+			refTag = ""
+		}
 		refTag = params.Get("ref")
-		return rawUrl, refTag
 	}
-	return rawUrl, ""
+	return refTag
+}
+
+// Returns url, tag submodules(if any) in that order
+func extractRefAndPath(sourceUrl string) (string, string, string) {
+	var refTag, finalUrl, tempUrl, submodulePaths, submodulePathsParams string
+	if strings.Count(sourceUrl, "//") == 2 {
+		sourceUrl, submodulePathsParams = extractSubmoduleFromSource(sourceUrl)
+		refTag = getTagFromUrl(sourceUrl + "/" + submodulePathsParams)
+		submodulePaths = removeUrlParams.ReplaceAllString(submodulePathsParams, "")
+	} else {
+		refTag = getTagFromUrl(sourceUrl)
+	}
+	tempUrl = sourceUrl
+	urlCleaner, _ := url.Parse(tempUrl)
+
+	if urlCleaner.Scheme != "" {
+		finalUrl = urlCleaner.Scheme + "://"
+	}
+	finalUrl = finalUrl + urlCleaner.Host + urlCleaner.Path
+
+	return finalUrl, refTag, submodulePaths
 }
 
 func extractModuleSource(line string) string {
@@ -73,21 +105,22 @@ func extractModuleSource(line string) string {
 	return matchedString
 }
 
-func preProcessingSourceString(line string) (string, string) {
+// Returns url, tag submodules(if any) in that order
+func preProcessingSourceString(line string) (string, string, string) {
 	// Will help avoid running moduleSourceRegexMap on every string
 	line = strings.ReplaceAll(line, " ", "")
 	sourceLineCheck := sourceLineRegex.FindAllStringSubmatch(line, -1)
 	if checkRegexMatchNotEmpty(sourceLineCheck) == "" {
-		return "", ""
+		return "", "", ""
 	} else {
 		repoLink := extractModuleSource(line)
 		slog.Debug("Git repo link before: " + repoLink)
-		var sourceUrl, refTag string
+		var sourceUrl, refTag, submodule string
 		if repoLink != "" {
-			sourceUrl, refTag = extractRefAndPath(repoLink)
+			sourceUrl, refTag, submodule = extractRefAndPath(repoLink)
 		}
 		slog.Debug("Git repo link after: " + sourceUrl)
-		return sourceUrl, refTag
+		return sourceUrl, refTag, submodule
 	}
 }
 
@@ -105,10 +138,10 @@ func processRepoLinksAndTags(path string) []map[string]string {
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			line := scanner.Text()
-			repo, tag := preProcessingSourceString(line)
+			repo, tag, submodule := preProcessingSourceString(line)
 			slog.Debug("readFiles :: processRepoLinksAndTags :: repo url :: " + repo)
 			if repo != "" {
-				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag})
+				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag, "submodule": submodule})
 			}
 
 		}

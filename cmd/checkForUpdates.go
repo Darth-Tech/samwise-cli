@@ -7,7 +7,6 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"github.com/thundersparkf/samwise/cmd/outputs"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -86,14 +85,6 @@ func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string
 	output, err := flags.GetString("output")
 	Check(err, "checkForUpdates :: command :: output argument error")
 	return depth, rootDir, directoriesToIgnore, output
-}
-
-func generateReport(data []map[string]string, outputFormat string, path string) {
-	if outputFormat == outputs.CSV {
-		createCSVReportFile(data, path)
-	} else if outputFormat == outputs.JSON {
-		createJSONReportFile(data, path)
-	}
 }
 
 func init() {
