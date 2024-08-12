@@ -47,7 +47,7 @@ j J         /-;-A'-'|'--'-j\
 As your repositories grow and you reference your modules in other repositories, you would reasonably version your modules to ensure that upstream changes in the source doesn't break your infrastructure. However, it is difficult to keep track of all the new releases for the modules being used and even harder to do it regularly. Unaddressed, this builds overtime as tech debt as one day you discover that a core module is now 3 major versions ahead.
 
 ## Solution
-samwise Searches your repository for usages of modules and generates a report of the modules that have updates available along with all the versions that are more advanced than the version used currently.
+`samwise` Searches your repository for usages of modules and generates a report of the modules that have updates available along with all the versions that are more advanced than the version used currently.
 ## Usage
 
 Available Commands:
