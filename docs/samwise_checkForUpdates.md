@@ -13,10 +13,10 @@ JSON format: [{
                 "current_version": <current version used in the code>,
                 "updates_available"
              }]
-	
+
 
 ```
-samwise checkForUpdates [flags]
+samwise checkForUpdates --path=[Directory with module usage] [flags]
 ```
 
 ### Options
