@@ -29,8 +29,11 @@ JSON format: [{
                 "current_version": <current version used in the code>,
                 "updates_available"
              }]
+
+An update is never late, nor is it early, it arrives precisely when it means to.
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		slog.Debug("creating a report...")
 		depth, rootDir, directoriesToIgnore, outputFormat, outputFilename := getParamsForCheckForUpdatesCMD(cmd.Flags())
 		slog.Debug("output format: " + outputFormat)
