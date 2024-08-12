@@ -18,7 +18,7 @@ import (
 
 // checkForUpdatesCmd represents the checkForUpdates command
 var checkForUpdatesCmd = &cobra.Command{
-	Use:   "checkForUpdates",
+	Use:   "checkForUpdates --path=[Directory with module usage]",
 	Short: "search for updates for terraform modules using in your code and generate a report",
 	Long: `Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
 
@@ -41,7 +41,6 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 		rootDir = fixTrailingSlashForPath(rootDir)
 		var modules []map[string]string
 		var failureList []map[string]string
-		var listWritten []string
 		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
 			Check(err, "checkForUpdates :: command :: ", path)
 			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
@@ -51,42 +50,54 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 					slog.Debug("...which is skipped")
 					return fs.SkipDir
 				}
-				path = fixTrailingSlashForPath(path)
-				modules = processRepoLinksAndTags(path)
-				bar := progressbar.Default(int64(len(modules)))
-				slog.Debug("checkForUpdates :: command :: path: " + path)
-				if modules != nil {
-					for _, module := range modules {
-						err := bar.Add(1)
-						Check(err, "progressbar error")
-						slog.Debug(module["repo"])
-						if !slices.Contains(listWritten, module["repo"]) {
-							tagsList, err := processGitRepo(module["repo"], module["current_version"])
-							if err != nil {
-								failureList = append(failureList, map[string]string{
-									"repo":              module["repo"],
-									"current_version":   module["current_version"],
-									"updates_available": tagsList,
-									"error":             err.Error(),
-								})
-							}
-							if len(tagsList) > 0 {
-								module["updates_available"] = tagsList
-								listWritten = append(listWritten, module["repo"])
-							}
-						}
-					}
-				}
+				modules, failureList = checkForModuleSourceUpdates(path)
+
 			}
 			return nil
 		})
+		//ci, _ := cmd.Flags().GetBool("ci")
+		//allowFailure, _ := cmd.Flags().GetBool("allow-failure")
 		Check(err, "checkForUpdates :: command :: unable to walk the directories")
 		outputFormat, err = checkOutputFormat(outputFormat)
 		Check(err, "checkForUpdates :: command :: output format error", outputFormat)
 		outputFilename = checkOutputFilename(outputFilename)
 		generateReport(modules, outputFilename, outputFormat, rootDir)
 		createJSONReportFile(failureList, rootDir, "failure_report")
+
 	},
+}
+
+func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string]string) {
+	var modules []map[string]string
+	var failureList []map[string]string
+	var listWritten []string
+	path = fixTrailingSlashForPath(path)
+	modules = processRepoLinksAndTags(path)
+	bar := progressbar.Default(int64(len(modules)))
+	slog.Debug("checkForUpdates :: command :: path: " + path)
+	if modules != nil {
+		for _, module := range modules {
+			err := bar.Add(1)
+			Check(err, "progressbar error")
+			slog.Debug(module["repo"])
+			if !slices.Contains(listWritten, module["repo"]) {
+				tagsList, err := processGitRepo(module["repo"], module["current_version"])
+				if err != nil {
+					failureList = append(failureList, map[string]string{
+						"repo":              module["repo"],
+						"current_version":   module["current_version"],
+						"updates_available": tagsList,
+						"error":             err.Error(),
+					})
+				}
+				if len(tagsList) > 0 {
+					module["updates_available"] = tagsList
+					listWritten = append(listWritten, module["repo"])
+				}
+			}
+		}
+	}
+	return modules, failureList
 }
 
 // Fixed return of params depth, rootDir, directoriesToIgnore, output, outputFilename
@@ -112,6 +123,9 @@ func init() {
 	checkForUpdatesCmd.Flags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
 	checkForUpdatesCmd.Flags().StringP("output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
 	checkForUpdatesCmd.Flags().StringP("output-filename", "f", "module_report", "Output file name.")
+	checkForUpdatesCmd.Flags().Bool("ci", false, "Set this flag for usage in CI systems. Does not generate a report. Prints JSON to Stdout and returns exit code 1 if modules are outdated.")
+	checkForUpdatesCmd.Flags().Bool("allow-failure", true, "Set this flag for usage in CI systems. If true, does NOT exit code 1 when modules are outdated.")
+
 	err := checkForUpdatesCmd.MarkFlagRequired("path")
 	if err != nil {
 		return
