@@ -1,9 +1,10 @@
-name: Go Test
-on: [push]
-
+name: Go Publish
+on:
+    workflow_dispatch:
 jobs:
-
     release:
+        permissions:
+            contents: write
         name: Create Release
         runs-on: 'ubuntu-latest'
         strategy:
