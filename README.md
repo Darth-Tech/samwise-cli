@@ -1,4 +1,4 @@
-# Samwise
+# samwise
 
 A CLI application to accompany on your terraform module journey and sharing your burden of module dependency updates, just as one brave Hobbit helped Frodo carry his :)
 
@@ -43,6 +43,11 @@ j J         /-;-A'-'|'--'-j\
                                         Frodo by Shanaka Dias
 ```
 
+## Challenge
+As your repositories grow and you reference your modules in other repositories, you would reasonably version your modules to ensure that upstream changes in the source doesn't break your infrastructure. However, it is difficult to keep track of all the new releases for the modules being used and even harder to do it regularly. Unaddressed, this builds overtime as tech debt as one day you discover that a core module is now 3 major versions ahead.
+
+## Solution
+samwise Searches your repository for usages of modules and generates a report of the modules that have updates available along with all the versions that are more advanced than the version used currently.
 ## Usage
 
 Available Commands:
