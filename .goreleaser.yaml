@@ -19,8 +19,8 @@ universal_binaries:
 
 brews:
     -
-        name: mediumautopost
-        homepage: "https://github.com/askcloudarchitech/mediumautopost"
+        name: samwise-cli
+        homepage: "https://github.com/Darth-Tech/"samwise-cli
         repository:
             owner: Darth-Tech
             name: homebrew-tap
