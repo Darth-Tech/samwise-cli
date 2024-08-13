@@ -4,7 +4,6 @@ on:
     push:
         tags:
             - "*"
-        tags-ignore:
             - "!*-pre"
 permissions:
     contents: write
