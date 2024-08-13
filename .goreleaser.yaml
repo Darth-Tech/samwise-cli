@@ -1,0 +1,32 @@
+builds:
+    - binary: mediumautopost
+      goos:
+          - darwin
+          - linux
+      goarch:
+          - amd64
+          - arm64
+      env:
+          - CGO_ENABLED=0
+      flags:
+          - -mod=vendor
+
+release:
+    prerelease: auto
+
+universal_binaries:
+    - replace: true
+
+brews:
+    -
+        name: mediumautopost
+        homepage: "https://github.com/askcloudarchitech/mediumautopost"
+        repository:
+            owner: Darth-Tech
+            name: homebrew-tap
+        commit_author:
+            name: Agastya Dev
+            email: thundersparkf
+
+checksum:
+    name_template: 'checksums.txt'

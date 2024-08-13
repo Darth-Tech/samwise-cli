@@ -1,47 +1,33 @@
-name: Go Publish
-on: workflow_dispatch
+name: goreleaser
+
+on:
+    push:
+        tags:
+            - "*"
+
+permissions:
+    contents: write
+
 jobs:
-    release:
-        permissions:
-            contents: write
-        name: Create Release
-        runs-on: 'ubuntu-latest'
-        strategy:
-            matrix:
-                # List of GOOS and GOARCH pairs from `go tool dist list`
-                goosarch:
-                    - 'darwin/amd64'
-                    - 'darwin/arm64'
-                    - 'linux/amd64'
-                    - 'linux/arm64'
+    goreleaser:
+        runs-on: ubuntu-latest
         steps:
-            -   name: Checkout code
+            -
+                name: Checkout
                 uses: actions/checkout@v2
                 with:
                     fetch-depth: 0
-            -   uses: actions/setup-go@v2
+            -
+                name: Set up Go
+                uses: actions/setup-go@v2
                 with:
-                    go-version: '1.22'
-            -   name: Get OS and arch info
-                run: |
-                    GOOSARCH=${{matrix.goosarch}}
-                    GOOS=${GOOSARCH%/*}
-                    GOARCH=${GOOSARCH#*/}
-                    BINARY_NAME=${{github.repository}}-$GOOS-$GOARCH
-                    echo "BINARY_NAME=$BINARY_NAME" >> $GITHUB_ENV
-                    echo "GOOS=$GOOS" >> $GITHUB_ENV
-                    echo "GOARCH=$GOARCH" >> $GITHUB_ENV
-            -   name: Build
-                run: |
-                    go build -o "$BINARY_NAME" -v
-            -   name: Release Notes
-                run:
-                    git log $(git describe HEAD~ --tags --abbrev=0)..HEAD --pretty='format:* %h %s%n  * %an <%ae>' --no-merges >> ".github/RELEASE-TEMPLATE.md"
-            -   name: Release with Notes
-                uses: softprops/action-gh-release@v1
+                    go-version: 1.22
+            -
+                name: Run GoReleaser
+                uses: goreleaser/goreleaser-action@v6
                 with:
-                    body_path: ".github/RELEASE-TEMPLATE.md"
-                    draft: true
-                    files: ${{env.BINARY_NAME}}
+                    distribution: goreleaser
+                    version: ${{ env.GITHUB_REF_NAME }}
+                    args: release --rm-dist
                 env:
-                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                    GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

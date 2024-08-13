@@ -116,3 +116,5 @@ fabric.properties
 .samwise.yaml
 
 coverage
+
+dist/
