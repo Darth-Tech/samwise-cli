@@ -20,7 +20,7 @@ universal_binaries:
 brews:
     -
         name: samwise-cli
-        homepage: "https://github.com/Darth-Tech/"samwise-cli
+        homepage: "https://github.com/Darth-Tech/samwise-cli"
         repository:
             owner: Darth-Tech
             name: homebrew-tap
