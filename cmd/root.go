@@ -79,7 +79,7 @@ func initConfig() {
 		viper.SetConfigType("yaml")
 		viper.SetConfigName(".samwise.yaml")
 	}
-
+	viper.SetEnvPrefix("SAMWISE_CLI")
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.

@@ -13,12 +13,22 @@ import (
 	"strings"
 ) // with go modules enabled (GO111MODULE=on or outside GOPATH)
 
+func gitAuthGenerator() {
+	gitUser := viper.GetString("git_user")
+	if gitUser == "" {
+		Check(errors.New("git_user value not set"), "please set git_user as SAMWISE_CLI_GIT_USER or in the .samwise.yaml file")
+	}
+	// TODO: figure out which one to send
+	viper.GetString("git_user")
+	viper.GetString("git_ssh_key_path")
+
+}
 func cloneRepo(url string) (*git.Repository, error) {
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: url,
 		Auth: &http.BasicAuth{
-			Username: viper.GetString("github_username"),
-			Password: viper.GetString("github_key"),
+			Username: viper.GetString("git_user"),
+			Password: viper.GetString("git_password"),
 		},
 	})
 	if err != nil {

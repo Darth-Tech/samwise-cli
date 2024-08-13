@@ -6,6 +6,15 @@ import (
 	"testing"
 )
 
+func TestGitAuthenticationGenerator(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			assert.PanicsWithValue(t, "git_user value not set", func() {
+				gitAuthGenerator()
+			})
+		}
+	}()
+}
 func TestHappyClonePublicRepo(t *testing.T) {
 	r, err := cloneRepo("https://github.com/thundersparkf/adlnet-lrs-py3.git")
 	assert.NotEmpty(t, r, "readGit_files.go :: cloneRepo :: repository is nil")
