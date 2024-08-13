@@ -48,6 +48,19 @@ As your repositories grow and you reference your modules in other repositories, 
 
 ## Solution
 `samwise` Searches your repository for usages of modules and generates a report of the modules that have updates available along with all the versions that are more advanced than the version used currently.
+## Install instructions
+Easier ways are on the way :)
+```shell
+git clone https://github.com/Darth-Tech/samwise-cli
+cd samwise-cli
+cp .samwise.yaml.example
+```
+Update the required git user token and then build using:
+```shell
+go build
+chmod +x samwise-cli
+```
+This can then be moved to any of the directories in the PATH variable so that it can be used easily or it can be used in the same directory itself.
 ## Usage
 
 Available Commands:
