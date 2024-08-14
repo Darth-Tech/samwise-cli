@@ -4,14 +4,15 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"github.com/thundersparkf/samwise/cmd/errorHandlers"
-	"github.com/thundersparkf/samwise/cmd/outputs"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/thundersparkf/samwise/cmd/errorHandlers"
+	"github.com/thundersparkf/samwise/cmd/outputs"
 )
 
 type reportJson struct {
@@ -130,10 +131,9 @@ func createJSONReportFile(data []map[string]string, path string, filename string
 	err = json.Unmarshal(reportString, &reportJsonObject)
 	slog.Debug("util :: createJSONReportFile :: reportString :: " + string(reportString))
 	Check(err, "util :: createJSONReportFile :: unable unmarshal into output format")
-	var finalReportMap map[string][]jsonReport
-	finalReportMap = map[string][]jsonReport{"report": reportJsonObject}
+	finalReportMap := map[string][]jsonReport{"report": reportJsonObject}
 	reportOutputString, err := json.Marshal(finalReportMap)
-
+	Check(err, "unable to marshal finalReportMap")
 	_, err = report.Write(reportOutputString)
 	Check(err, "util :: createJSONReportFile :: unable to write to file", reportFilePath)
 }

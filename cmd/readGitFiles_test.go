@@ -1,12 +1,18 @@
 package cmd
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
-	"testing"
 )
 
 func TestGitAuthenticationGenerator(t *testing.T) {
+	// TODO: Add tests to check key present and getting ssh type for urls with @
+	// TODO: Add tests for key not present panic
+	// TODO: Add tests for @ not present in url and username and password retrieved
+	// TODO: Add tests for user and password not passed so they return empty strings
+	// TODO: Incorrect format private key parsing panic
 	defer func() {
 		if r := recover(); r != nil {
 			assert.PanicsWithValue(t, "git_user value not set", func() {
@@ -15,12 +21,28 @@ func TestGitAuthenticationGenerator(t *testing.T) {
 		}
 	}()
 }
+
+// TODO: Add tests for ssh cloning
 func TestHappyClonePublicRepo(t *testing.T) {
 	r, err := cloneRepo("https://github.com/thundersparkf/adlnet-lrs-py3.git")
 	assert.NotEmpty(t, r, "readGit_files.go :: cloneRepo :: repository is nil")
 	assert.Empty(t, err, "readGit_files.go :: cloneRepo :: err is not nil :: ")
-	head, err := r.Head()
+	head, _ := r.Head()
 	assert.Equal(t, "refs/heads/master", head.Name().String(), "readGit_files.go :: cloneRepo :: repository's head is ref/heads/master")
+
+}
+
+func TestUnhappyNoProtocolClonePublicRepo(t *testing.T) {
+	//r, err := cloneRepo("github.com/thundersparkf/adlnet-lrs-py3.git")
+	//assert.Empty(t, r, "readGit_files.go :: cloneRepo :: repository is nil")
+	//assert.NotEmpty(t, err, "readGit_files.go :: cloneRepo :: err is not nil :: ")
+	//head, err := r.Head()
+	defer func() {
+		if r := recover(); r != nil {
+			//r, err :=
+			assert.Panics(t, func() { cloneRepo("github.com/thundersparkf/adlnet-lrs-py3.git") }, "readGit_files.go :: cloneRepo :: repository's head is ref/heads/master")
+		}
+	}()
 
 }
 

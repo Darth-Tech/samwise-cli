@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"bufio"
-	"golang.org/x/exp/maps"
 	"log/slog"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -12,15 +10,10 @@ import (
 
 var (
 	// Regex to check if the line has "source=" in it
-	sourceLineRegex      = regexp.MustCompile("source=\"(.+)\"")
-	moduleSourceRegexMap = map[string]*regexp.Regexp{
-		"generic_git": regexp.MustCompile("source=\"git::(.+)\""),
-		"github":      regexp.MustCompile("source=\"(github.com.+)\""),
-		"https":       regexp.MustCompile("source=\"(https://.+)\""),
-		"bitbucket":   regexp.MustCompile("source=\".*(bitbucket.org.+)\""),
-	}
-	submoduleRegex  = regexp.MustCompile("(.*/.*)//(.*)")
-	removeUrlParams = regexp.MustCompile("(\\?.*)")
+	sourceLineRegex = regexp.MustCompile(`source="(.+\..+)"`)
+	submoduleRegex  = regexp.MustCompile(`(?P<base_url>.*/.*)//(?P<submodule>.*)`)
+	removeUrlParams = regexp.MustCompile(`(\?.*)`)
+	refRegex        = regexp.MustCompile(".*?ref=(.*)&.*|.*?ref=(.*)")
 	moduleRepoList  []map[string]string
 )
 
@@ -31,24 +24,41 @@ func fixTrailingSlashForPath(path string) string {
 	return path
 }
 
+func getNamedMatchesForRegex(reg *regexp.Regexp, sourceString string) map[string]string {
+	match := reg.FindStringSubmatch(sourceString)
+	result := make(map[string]string)
+
+	if len(match) > 0 {
+		for i, name := range reg.SubexpNames() {
+			if i != 0 && name != "" {
+				result[name] = match[i]
+			}
+		}
+	}
+
+	return result
+}
+
 // Returns base url and cleaned paths
 func extractSubmoduleFromSource(source string) (string, string) {
-	subModuleMatch := submoduleRegex.FindAllStringSubmatch(source, -1)
+	subModuleMatch := getNamedMatchesForRegex(submoduleRegex, source)
 	var baseUrl = ""
 	var path = ""
-	if len(subModuleMatch) > 0 && len(subModuleMatch[0][1]) > 0 {
-		baseUrl = subModuleMatch[0][1]
+	// If there is a match and one group is matched(1st), then it
+	if len(subModuleMatch) > 0 && len(subModuleMatch["base_url"]) > 0 {
+		baseUrl = subModuleMatch["base_url"]
 	} else {
 		baseUrl = source
 	}
-	if len(subModuleMatch) > 0 && len(subModuleMatch[0][2]) > 0 {
-		path = subModuleMatch[0][2]
+	if len(subModuleMatch) > 0 && len(subModuleMatch["submodule"]) > 0 {
+		path = subModuleMatch["submodule"]
 	}
 	return baseUrl, path
 }
-func checkRegexMatchNotEmpty(match [][]string) string {
-	if len(match) > 0 && len(match[0][1]) > 0 {
-		return match[0][1]
+
+func checkRegexMatchNotEmpty(matchedString []string, toExtract int) string {
+	if len(matchedString) > 0 && len(matchedString[1]) > 0 {
+		return matchedString[1]
 	}
 	return ""
 }
@@ -56,51 +66,34 @@ func checkRegexMatchNotEmpty(match [][]string) string {
 // TODO Add tests
 func getTagFromUrl(source string) string {
 	var refTag string
-	refParams, err := url.Parse(source)
-	// TODO: Refactor
-	if CheckNonPanic(err, "readFiles :: extractRefAndPath :: unable to parse url for params") {
-		refTag = ""
-	} else {
-		params, err := url.ParseQuery(refParams.RawQuery)
-		if CheckNonPanic(err, "readFiles :: extractRefAndPath :: unable to parse url for params") {
-			refTag = ""
-		}
-		refTag = params.Get("ref")
+	refTagMatches := refRegex.FindStringSubmatch(source)
+	if len(refTagMatches) > 0 {
+		refTag = refTagMatches[2]
+		return refTag
 	}
+
 	return refTag
 }
 
 // Returns url, tag submodules(if any) in that order
 func extractRefAndPath(sourceUrl string) (string, string, string) {
-	var refTag, finalUrl, tempUrl, submodulePaths, submodulePathsParams string
-	if strings.Count(sourceUrl, "//") == 2 {
-		sourceUrl, submodulePathsParams = extractSubmoduleFromSource(sourceUrl)
-		refTag = getTagFromUrl(sourceUrl + "/" + submodulePathsParams)
-		submodulePaths = removeUrlParams.ReplaceAllString(submodulePathsParams, "")
-	} else {
-		refTag = getTagFromUrl(sourceUrl)
-	}
-	tempUrl = sourceUrl
-	urlCleaner, _ := url.Parse(tempUrl)
+	var refTag, submodulePaths string
 
-	if urlCleaner.Scheme != "" {
-		finalUrl = urlCleaner.Scheme + "://"
-	}
-	finalUrl = finalUrl + urlCleaner.Host + urlCleaner.Path
+	baseUrl, submodulePathsParams := extractSubmoduleFromSource(sourceUrl)
+	submodulePaths = removeUrlParams.ReplaceAllString(submodulePathsParams, "")
+	baseUrl = removeUrlParams.ReplaceAllString(baseUrl, "")
+	refTag = getTagFromUrl(sourceUrl)
 
-	return finalUrl, refTag, submodulePaths
+	return baseUrl, refTag, submodulePaths
 }
 
 func extractModuleSource(line string) string {
-	keys := maps.Keys(moduleSourceRegexMap)
-	var match [][]string
 	var matchedString = ""
-	for _, sourceRegex := range keys {
-		match = moduleSourceRegexMap[sourceRegex].FindAllStringSubmatch(line, 1)
-		matchedString = checkRegexMatchNotEmpty(match)
-		if matchedString != "" {
-			break
-		}
+	match := sourceLineRegex.FindStringSubmatch(line)
+	if len(match) > 0 {
+		matchedString = match[1]
+		matchedString = strings.ReplaceAll(matchedString, "git::", "")
+
 	}
 	return matchedString
 }
@@ -109,14 +102,16 @@ func extractModuleSource(line string) string {
 func preProcessingSourceString(line string) (string, string, string) {
 	// Will help avoid running moduleSourceRegexMap on every string
 	line = strings.ReplaceAll(line, " ", "")
-	sourceLineCheck := sourceLineRegex.FindAllStringSubmatch(line, -1)
-	if checkRegexMatchNotEmpty(sourceLineCheck) == "" {
+	sourceLineCheck := sourceLineRegex.FindStringSubmatch(line)
+	if len(sourceLineCheck) == 0 {
 		return "", "", ""
 	} else {
 		repoLink := extractModuleSource(line)
+		//repoLink := sourceLineCheck[1]
 		slog.Debug("Git repo link before: " + repoLink)
 		var sourceUrl, refTag, submodule string
 		if repoLink != "" {
+
 			sourceUrl, refTag, submodule = extractRefAndPath(repoLink)
 		}
 		slog.Debug("Git repo link after: " + sourceUrl)
