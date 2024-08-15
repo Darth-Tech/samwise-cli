@@ -17,9 +17,10 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"github.com/spf13/cobra/doc"
 	"log/slog"
 	"os"
+
+	"github.com/spf13/cobra/doc"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -43,6 +44,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	rootCmd.DisableAutoGenTag = true
 	err := doc.GenMarkdownTree(rootCmd, "./docs")
+	Check(err, "unable to generate documentation")
 
 	err = rootCmd.Execute()
 	if err != nil {

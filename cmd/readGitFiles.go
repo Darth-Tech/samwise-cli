@@ -20,16 +20,20 @@ import (
 
 func gitAuthGenerator(url string) transport.AuthMethod {
 	if !strings.Contains(url, "@") {
+		slog.Debug("using basic https auth")
 		return &http.BasicAuth{
 			Username: viper.GetString("git_user"),
-			Password: viper.GetString("git_password"),
+			Password: viper.GetString("git_key"),
 		}
 	}
+	slog.Debug("using ssh auth")
 	username := strings.Split(url, "@")[0]
-	sshPath := viper.Get("git_ssh_key_path")
-	sshKey, err := os.ReadFile(sshPath.(string))
-	Check(err, "key error")
+	sshPath := viper.GetString("git_ssh_key_path")
+	slog.Debug("readGitFiles :: gitAuthGenerator :: " + sshPath)
+	sshKey, err := os.ReadFile(sshPath)
+	Check(err, "filename "+sshPath)
 	signer, err := ssh.ParsePrivateKey(sshKey)
+	Check(err, "signer key died")
 	publicKey := &sshgit.PublicKeys{User: username, Signer: signer, HostKeyCallbackHelper: sshgit.HostKeyCallbackHelper{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}}
@@ -40,15 +44,40 @@ func gitAuthGenerator(url string) transport.AuthMethod {
 	return publicKey
 }
 
+func parseGitUrl(source string) string {
+	slog.Debug("readGitFiles :: parseGitUrl :: source " + source)
+	if strings.Contains(source, "@") || strings.Contains(source, "ssh://") {
+		source = strings.Replace(source, "ssh://", "", 1)
+		return source
+	}
+	source = strings.Replace(source, "git::", "", 1)
+	endpointUrl, err := transport.NewEndpoint(source)
+	slog.Debug("readGitFiles :: parseGitUrl :: endpoint result", "host", endpointUrl.Host, "path", endpointUrl.Path, "protocol", endpointUrl.Protocol)
+	if CheckNonPanic(err, "unable to parse git url") {
+		return ""
+	}
+
+	if endpointUrl.Protocol == "" || endpointUrl.Protocol == "file" {
+		return "https://" + strings.Replace(endpointUrl.String(), "file://", "", 1)
+	}
+	return endpointUrl.String()
+}
 func cloneRepo(url string) (*git.Repository, error) {
+	url = parseGitUrl(url)
+	slog.Debug("readGitFiles :: cloneRepo :: url :: " + url)
 	authMethod := gitAuthGenerator(url)
 	//authMethod, err := ssh.DefaultAuthBuilder("git")
+	if url == "" {
+		slog.Debug("readGitFiles :: cloneRepo :: url is empty from parseGitUrl")
+		return nil, errors.New(errorHandlers.CloningErrorPrefix + " unable to clone " + url)
+	}
+	slog.Debug("readGitFiles :: cloneRepo :: auth method", "authMethod", authMethod.String())
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL:  url,
 		Auth: authMethod,
 	})
 	if err != nil {
-		slog.Error("readGitFiles :: cloneRepo :: url: " + url)
+		slog.Error("readGitFiles :: cloneRepo :: url :: " + url)
 		return nil, errors.New(errorHandlers.CloningErrorPrefix + err.Error())
 	}
 	return r, nil
@@ -70,6 +99,9 @@ func getTags(r *git.Repository, currentVersionTag string) string {
 		}
 		return nil
 	})
+	if CheckNonPanic(err, "unable to retrieve tags") {
+		return ""
+	}
 	if len(tagsList) > 0 {
 		return strings.Join(tagsList, "|")
 	}

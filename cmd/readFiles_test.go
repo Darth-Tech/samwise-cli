@@ -51,8 +51,11 @@ func TestExtractRefAndPathRepo(t *testing.T) {
 	gitHubExampleRepo, _, _ := extractRefAndPath("github.com/hashicorp/example?ref=1.0.0")
 	assert.Equal(t, "github.com/hashicorp/example", gitHubExampleRepo, "readFiles :: extractRefAndPath :: repo :: "+gitHubExampleRepo)
 
-	//gitHubSSHExampleRepo, _, _ := extractRefAndPath("git@github.com:hashicorp/example.git")
-	//assert.Equal(t, "git@github.com/hashicorp/example.git", gitHubSSHExampleRepo, "readFiles :: extractRefAndPath :: repo :: "+gitHubSSHExampleRepo)
+	gitHubSSHExampleRepo, _, _ := extractRefAndPath("git@github.com:hashicorp/example.git")
+	assert.Equal(t, "git@github.com:hashicorp/example.git", gitHubSSHExampleRepo, "readFiles :: extractRefAndPath :: repo :: "+gitHubSSHExampleRepo)
+
+	gitHubSSHExampleRepoWithRef, _, _ := extractRefAndPath("git@github.com:hashicorp/example.git?ref=test")
+	assert.Equal(t, "git@github.com:hashicorp/example.git", gitHubSSHExampleRepoWithRef, "readFiles :: extractRefAndPath :: repo :: "+gitHubSSHExampleRepo)
 
 	bitbucketExampleRepo, _, _ := extractRefAndPath("bitbucket.org/hashicorp/terraform-consul-aws?ref=1.0.0&test=woho")
 	assert.Equal(t, "bitbucket.org/hashicorp/terraform-consul-aws", bitbucketExampleRepo, "readFiles :: extractRefAndPath :: repo :: "+bitbucketExampleRepo)
@@ -87,7 +90,9 @@ func TestExtractRefAndPathSubmodule(t *testing.T) {
 	assert.Equal(t, "", gitHubExampleSubmodule, "readFiles :: extractRefAndPath :: submodule :: "+gitHubExampleSubmodule)
 	assert.Equal(t, "github.com/hashicorp/example", gitHubExample, "readFiles :: extractRefAndPath :: repo :: "+gitHubExample)
 
-	//_, _, gitHubSSHExampleSubmodule := extractRefAndPath("git@github.com:hashicorp/example.git")
+	gitHubSSHExample, _, gitHubSSHExampleSubmodule := extractRefAndPath("git@github.com:hashicorp/example//module/test")
+	assert.Equal(t, "module/test", gitHubSSHExampleSubmodule, "readFiles :: extractRefAndPath :: submodule :: "+gitHubSSHExampleSubmodule)
+	assert.Equal(t, "git@github.com:hashicorp/example", gitHubSSHExample, "readFiles :: extractRefAndPath :: repo :: "+gitHubSSHExample)
 
 	gitHubExampleRepo, _, gitHubExampleRepoSubmodule := extractRefAndPath("https://github.com/org/repo//submodules/folder?ref=1.1.1\n")
 	assert.Equal(t, "submodules/folder", gitHubExampleRepoSubmodule, "readFiles :: extractRefAndPath :: submodule :: "+gitHubExampleRepoSubmodule)
@@ -141,5 +146,3 @@ func TestExtractSubmoduleFromSource(t *testing.T) {
 	assert.Equal(t, "submodule/folder1/folder2", submoduleWithDepths)
 
 }
-
-//gitHubSSHExampleTag, gitHubSSHExampleRepo,

@@ -56,14 +56,6 @@ func extractSubmoduleFromSource(source string) (string, string) {
 	return baseUrl, path
 }
 
-func checkRegexMatchNotEmpty(matchedString []string, toExtract int) string {
-	if len(matchedString) > 0 && len(matchedString[1]) > 0 {
-		return matchedString[1]
-	}
-	return ""
-}
-
-// TODO Add tests
 func getTagFromUrl(source string) string {
 	var refTag string
 	refTagMatches := refRegex.FindStringSubmatch(source)
