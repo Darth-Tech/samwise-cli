@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	rootCmd.DisableAutoGenTag = true
 	err := doc.GenMarkdownTree(rootCmd, "./docs")
-	Check(err, "unable to generate documentation")
+	//Check(err, "unable to generate documentation")
 
 	err = rootCmd.Execute()
 	if err != nil {
