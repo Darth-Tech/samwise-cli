@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"regexp"
@@ -67,7 +66,6 @@ func extractSubmoduleFromSource(source string) (string, string) {
 func getTagFromUrl(source string) string {
 	var refTag string
 	refTagMatches := refRegex.FindStringSubmatch(source)
-	fmt.Println(refTagMatches)
 	if len(refTagMatches) > 0 {
 		refTag = refTagMatches[2]
 		return refTag
@@ -82,9 +80,7 @@ func extractRefAndPath(sourceUrl string) (string, string, string) {
 	baseUrl, submodulePathsParams := extractSubmoduleFromSource(sourceUrl)
 	submodulePaths = removeUrlParams.ReplaceAllString(submodulePathsParams, "")
 	baseUrl = removeUrlParams.ReplaceAllString(baseUrl, "")
-	fmt.Println(baseUrl)
 	refTag = getTagFromUrl(sourceUrl)
-	fmt.Println(refTag)
 
 	return baseUrl, refTag, submodulePaths
 }
