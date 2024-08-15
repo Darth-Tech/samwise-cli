@@ -118,3 +118,8 @@ fabric.properties
 coverage
 
 dist/
+cmd/failure_report.json
+cmd/module_dependency_report.csv
+cmd/module_dependency_report.json
+cmd/module_dependency.json
+cmd/module_report.csv

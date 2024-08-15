@@ -4,14 +4,14 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"github.com/thundersparkf/samwise/cmd/errorHandlers"
-	"github.com/thundersparkf/samwise/cmd/outputs"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/thundersparkf/samwise/cmd/errorHandlers"
+	"github.com/thundersparkf/samwise/cmd/outputs"
 )
 
 type reportJson struct {
@@ -97,23 +97,6 @@ func checkOutputFilename(outputFilename string) string {
 
 }
 
-func readCsvFile(filePath string) [][]string {
-	f, err := os.Open(filePath)
-	Check(err, "util :: readCSVFile :: unable to read input file", filePath)
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			Check(err, "util :: readCsvFile :: unable to close file")
-		}
-	}(f)
-
-	csvReader := csv.NewReader(f)
-	records, err := csvReader.ReadAll()
-	Check(err, "util :: readCSVFile :: unable to parse file as CSV", filePath)
-
-	return records
-}
-
 func createJSONReportFile(data []map[string]string, path string, filename string) {
 	reportFilePath := path + "/" + filename + ".json"
 	report, err := os.Create(reportFilePath)
@@ -130,21 +113,9 @@ func createJSONReportFile(data []map[string]string, path string, filename string
 	err = json.Unmarshal(reportString, &reportJsonObject)
 	slog.Debug("util :: createJSONReportFile :: reportString :: " + string(reportString))
 	Check(err, "util :: createJSONReportFile :: unable unmarshal into output format")
-	var finalReportMap map[string][]jsonReport
-	finalReportMap = map[string][]jsonReport{"report": reportJsonObject}
+	finalReportMap := map[string][]jsonReport{"report": reportJsonObject}
 	reportOutputString, err := json.Marshal(finalReportMap)
-
+	Check(err, "unable to marshal finalReportMap")
 	_, err = report.Write(reportOutputString)
 	Check(err, "util :: createJSONReportFile :: unable to write to file", reportFilePath)
-}
-
-func readJSONFile(filePath string) reportJson {
-	var report reportJson
-	file, err := os.Open(filePath)
-	Check(err, "util :: readJSONFile :: unable to open file", filePath)
-	byteValue, err := io.ReadAll(file)
-	Check(err, "util :: readJSONFile :: unable to read bytes", byteValue)
-	err = json.Unmarshal(byteValue, &report)
-	Check(err, "util :: readJSONFile :: unable to unmarshal json", string(byteValue))
-	return report
 }

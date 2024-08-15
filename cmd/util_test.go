@@ -1,11 +1,45 @@
 package cmd
 
 import (
+	"encoding/csv"
+	"encoding/json"
 	"errors"
+	"io"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
-	"testing"
 )
+
+// Functions to help testing
+func readCsvFile(filePath string) [][]string {
+	f, err := os.Open(filePath)
+	Check(err, "util :: readCSVFile :: unable to read input file", filePath)
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			Check(err, "util :: readCsvFile :: unable to close file")
+		}
+	}(f)
+
+	csvReader := csv.NewReader(f)
+	records, err := csvReader.ReadAll()
+	Check(err, "util :: readCSVFile :: unable to parse file as CSV", filePath)
+
+	return records
+}
+
+func readJSONFile(filePath string) reportJson {
+	var report reportJson
+	file, err := os.Open(filePath)
+	Check(err, "util :: readJSONFile :: unable to open file", filePath)
+	byteValue, err := io.ReadAll(file)
+	Check(err, "util :: readJSONFile :: unable to read bytes", byteValue)
+	err = json.Unmarshal(byteValue, &report)
+	Check(err, "util :: readJSONFile :: unable to unmarshal json", string(byteValue))
+	return report
+}
 
 func TestHappyCheckOutputFormat(t *testing.T) {
 	csvLowerCaseTest, err := checkOutputFormat("csv")

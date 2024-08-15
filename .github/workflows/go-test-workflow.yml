@@ -1,10 +1,10 @@
 name: Go Test
 on: [push]
-
+env:
+  SAMWISE_CLI_GIT_SSH_KEY_PATH: ${{secrets.SAMWISE_CLI_GIT_SSH_KEY_PATH}}
 jobs:
     test:
         runs-on: ubuntu-latest
-
         steps:
             - uses: actions/checkout@v4
             - name: Setup Go
@@ -15,5 +15,11 @@ jobs:
               run: go get .
             - name: Build
               run: go build -v ./...
+            - name: setup ssh key for testing
+              run: |
+                      install --directory ~/.ssh --mode 700
+                      echo '${{ secrets.SSH_PRIVATE }}' > ~/.ssh/id_rsa
+                      chmod 600 ~/.ssh/*
             - name: Test with the Go CLI
               run: go test -json ./cmd/...
+                

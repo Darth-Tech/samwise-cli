@@ -4,9 +4,6 @@ Copyright © 2024 Agastya Dev Addepally (devagastya0@gmail.com)
 package cmd
 
 import (
-	"github.com/schollz/progressbar/v3"
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -14,6 +11,10 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/schollz/progressbar/v3"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // checkForUpdatesCmd represents the checkForUpdates command
@@ -123,8 +124,8 @@ func init() {
 	checkForUpdatesCmd.Flags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
 	checkForUpdatesCmd.Flags().StringP("output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
 	checkForUpdatesCmd.Flags().StringP("output-filename", "f", "module_report", "Output file name.")
-	checkForUpdatesCmd.Flags().Bool("ci", false, "Set this flag for usage in CI systems. Does not generate a report. Prints JSON to Stdout and returns exit code 1 if modules are outdated.")
-	checkForUpdatesCmd.Flags().Bool("allow-failure", true, "Set this flag for usage in CI systems. If true, does NOT exit code 1 when modules are outdated.")
+	//checkForUpdatesCmd.Flags().Bool("ci", false, "Set this flag for usage in CI systems. Does not generate a report. Prints JSON to Stdout and returns exit code 1 if modules are outdated.")
+	//checkForUpdatesCmd.Flags().Bool("allow-failure", true, "Set this flag for usage in CI systems. If true, does NOT exit code 1 when modules are outdated.")
 
 	err := checkForUpdatesCmd.MarkFlagRequired("path")
 	if err != nil {

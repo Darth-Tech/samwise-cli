@@ -14,6 +14,8 @@ JSON format: [{
                 "updates_available"
              }]
 
+An update is never late, nor is it early, it arrives precisely when it means to.
+	
 
 ```
 samwise checkForUpdates --path=[Directory with module usage] [flags]
