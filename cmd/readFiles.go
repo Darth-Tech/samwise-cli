@@ -6,12 +6,20 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"golang.org/x/exp/maps"
 )
 
 var (
 	// Regex to check if the line has "source=" in it
-	sourceLineRegex = regexp.MustCompile(`source="(.+\..+)"`)
-	submoduleRegex  = regexp.MustCompile(`(?P<base_url>.*/.*)//(?P<submodule>.*)`)
+	sourceLineRegex      = regexp.MustCompile(`source="(.+\..+)"`)
+	submoduleRegex       = regexp.MustCompile(`(?P<base_url>.*/.*)//(?P<submodule>.*)`)
+	moduleSourceRegexMap = map[string]*regexp.Regexp{
+		"generic_git": regexp.MustCompile(`git::(.+)`),
+		"github":      regexp.MustCompile(`(.*github.com.+)`),
+		"https":       regexp.MustCompile(`(https://.+)`),
+		"bitbucket":   regexp.MustCompile(`.*(bitbucket.org.+)`),
+	}
 	removeUrlParams = regexp.MustCompile(`(\?.*)`)
 	refRegex        = regexp.MustCompile(".*?ref=(.*)&.*|.*?ref=(.*)")
 	moduleRepoList  []map[string]string
@@ -84,7 +92,17 @@ func extractModuleSource(line string) string {
 	match := sourceLineRegex.FindStringSubmatch(line)
 	if len(match) > 0 {
 		matchedString = match[1]
-		matchedString = strings.ReplaceAll(matchedString, "git::", "")
+		if strings.Contains(matchedString, "@") {
+			matchedString = strings.ReplaceAll(matchedString, "git::", "")
+			return matchedString
+		}
+		for _, regex := range maps.Keys(moduleSourceRegexMap) {
+			source := moduleSourceRegexMap[regex].FindStringSubmatch(matchedString)
+			if len(source) > 0 {
+				matchedString = strings.ReplaceAll(source[1], "git::", "")
+				break
+			}
+		}
 
 	}
 	return matchedString
