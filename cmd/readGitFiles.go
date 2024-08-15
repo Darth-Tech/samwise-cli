@@ -77,7 +77,7 @@ func cloneRepo(url string) (*git.Repository, error) {
 		Auth: authMethod,
 	})
 	if err != nil {
-		slog.Error("readGitFiles :: cloneRepo :: url :: " + url)
+		slog.Debug("readGitFiles :: cloneRepo :: url :: " + url)
 		return nil, errors.New(errorHandlers.CloningErrorPrefix + err.Error())
 	}
 	return r, nil

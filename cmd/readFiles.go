@@ -130,8 +130,14 @@ func processRepoLinksAndTags(path string) []map[string]string {
 	for _, file := range files {
 		fullPath := path + "/" + file.Name()
 		f, err := os.ReadFile(fullPath)
-		if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to read file", path, fullPath) {
-			continue
+
+		if err != nil {
+			if strings.Contains(err.Error(), "directory") {
+				slog.Debug(err.Error())
+				continue
+			} else {
+				CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to readfile")
+			}
 		}
 		fileContent := string(f)
 		fileContent = strings.ReplaceAll(fileContent, " ", "")
