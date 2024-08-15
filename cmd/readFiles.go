@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"bufio"
+	"fmt"
 	"log/slog"
 	"os"
 	"regexp"
@@ -12,7 +12,7 @@ import (
 
 var (
 	// Regex to check if the line has "source=" in it
-	sourceLineRegex      = regexp.MustCompile(`source="(.+\..+)"`)
+	sourceLineRegex      = regexp.MustCompile(`(?mU).*module\".+\".*{.*source="(.+\..+)".*}.*`)
 	submoduleRegex       = regexp.MustCompile(`(?P<base_url>.*/.*)//(?P<submodule>.*)`)
 	moduleSourceRegexMap = map[string]*regexp.Regexp{
 		"generic_git": regexp.MustCompile(`git::(.+)`),
@@ -67,6 +67,7 @@ func extractSubmoduleFromSource(source string) (string, string) {
 func getTagFromUrl(source string) string {
 	var refTag string
 	refTagMatches := refRegex.FindStringSubmatch(source)
+	fmt.Println(refTagMatches)
 	if len(refTagMatches) > 0 {
 		refTag = refTagMatches[2]
 		return refTag
@@ -78,20 +79,20 @@ func getTagFromUrl(source string) string {
 // Returns url, tag submodules(if any) in that order
 func extractRefAndPath(sourceUrl string) (string, string, string) {
 	var refTag, submodulePaths string
-
 	baseUrl, submodulePathsParams := extractSubmoduleFromSource(sourceUrl)
 	submodulePaths = removeUrlParams.ReplaceAllString(submodulePathsParams, "")
 	baseUrl = removeUrlParams.ReplaceAllString(baseUrl, "")
+	fmt.Println(baseUrl)
 	refTag = getTagFromUrl(sourceUrl)
+	fmt.Println(refTag)
 
 	return baseUrl, refTag, submodulePaths
 }
 
-func extractModuleSource(line string) string {
+func extractModuleSource(match string) string {
 	var matchedString = ""
-	match := sourceLineRegex.FindStringSubmatch(line)
 	if len(match) > 0 {
-		matchedString = match[1]
+		matchedString = match
 		if strings.Contains(matchedString, "@") {
 			matchedString = strings.ReplaceAll(matchedString, "git::", "")
 			return matchedString
@@ -111,22 +112,18 @@ func extractModuleSource(line string) string {
 // Returns url, tag submodules(if any) in that order
 func preProcessingSourceString(line string) (string, string, string) {
 	// Will help avoid running moduleSourceRegexMap on every string
-	line = strings.ReplaceAll(line, " ", "")
-	sourceLineCheck := sourceLineRegex.FindStringSubmatch(line)
-	if len(sourceLineCheck) == 0 {
-		return "", "", ""
-	} else {
-		repoLink := extractModuleSource(line)
-		//repoLink := sourceLineCheck[1]
-		slog.Debug("Git repo link before: " + repoLink)
-		var sourceUrl, refTag, submodule string
-		if repoLink != "" {
 
-			sourceUrl, refTag, submodule = extractRefAndPath(repoLink)
-		}
-		slog.Debug("Git repo link after: " + sourceUrl)
-		return sourceUrl, refTag, submodule
+	repoLink := extractModuleSource(line)
+	//repoLink := sourceLineCheck[1]
+	slog.Debug("Git repo link before: " + repoLink)
+	var sourceUrl, refTag, submodule string
+	if repoLink != "" {
+
+		sourceUrl, refTag, submodule = extractRefAndPath(repoLink)
 	}
+	slog.Debug("Git repo link after: " + sourceUrl)
+	return sourceUrl, refTag, submodule
+
 }
 
 func processRepoLinksAndTags(path string) []map[string]string {
@@ -136,24 +133,28 @@ func processRepoLinksAndTags(path string) []map[string]string {
 	}
 	for _, file := range files {
 		fullPath := path + "/" + file.Name()
-		f, err := os.Open(fullPath)
+		f, err := os.ReadFile(fullPath)
 		if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to read file", path, fullPath) {
 			continue
 		}
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			line := scanner.Text()
-			repo, tag, submodule := preProcessingSourceString(line)
+		fileContent := string(f)
+		fileContent = strings.ReplaceAll(fileContent, " ", "")
+		fileContent = strings.ReplaceAll(fileContent, "\\", "")
+		fileContent = strings.ReplaceAll(fileContent, "\n", "")
+		matches := sourceLineRegex.FindAllStringSubmatch(fileContent, -1)
+		for _, match := range matches {
+			repo, tag, submodule := preProcessingSourceString(match[1])
 			slog.Debug("readFiles :: processRepoLinksAndTags :: repo url :: " + repo)
 			if repo != "" {
 				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag, "submodule": submodule})
 			}
 
+			if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to close file", path, fullPath) {
+				continue
+			}
+
 		}
-		err = f.Close()
-		if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to close file", path, fullPath) {
-			continue
-		}
+
 	}
 	return moduleRepoList
 }

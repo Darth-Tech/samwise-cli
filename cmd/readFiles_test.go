@@ -43,7 +43,7 @@ func TestGetTagFromUrl(t *testing.T) {
 	assert.Empty(t, getTagFromUrl("github.com/hashicorp/example.git"), "ref param found for github.com/hashicorp/example.git")
 	assert.Empty(t, getTagFromUrl("github.com/hashicorp/example?depth=1"), "ref param found")
 	assert.Empty(t, getTagFromUrl("https://github.com/hashicorp/example?depth=1"), "ref param found")
-	assert.Equal(t, "1.0.1", getTagFromUrl("https://github.com/hashicorp/example?depth=&ref=1.0.1"), "ref param found")
+	assert.Equal(t, "1.0.1", getTagFromUrl("https://github.com/hashicorp/example?depth=5&ref=1.0.1"), "ref param found")
 
 	assert.Equal(t, "2.0.0", getTagFromUrl("https://github.com/hashicorp/example?ref=2.0.0"), "ref param not found for https://github.com/hashicorp/example?ref=2.0.0")
 }
@@ -104,25 +104,25 @@ func TestExtractRefAndPathSubmodule(t *testing.T) {
 
 }
 func TestExtractModuleSource(t *testing.T) {
-	nonGitSource := extractModuleSource("source=\"Terraform-VMWare-Modules/vm/vsphere\"")
-	assert.Empty(t, nonGitSource, "readFiles :: extractRefAndPath :: repo :: non git terraform source extracted incorrectly")
+	nonGitSource := extractModuleSource("Terraform-VMWare-Modules/vm/vsphere")
+	assert.Equal(t, "Terraform-VMWare-Modules/vm/vsphere", nonGitSource, "readFiles :: extractRefAndPath :: repo :: non git terraform source extracted incorrectly")
 
-	gitHubExampleSource := extractModuleSource("source=\"github.com/hashicorp/example?ref=1.0.0\"")
+	gitHubExampleSource := extractModuleSource("github.com/hashicorp/example?ref=1.0.0")
 	assert.Equal(t, "github.com/hashicorp/example?ref=1.0.0", gitHubExampleSource, "readFiles :: extractRefAndPath :: repo :: "+gitHubExampleSource)
 
-	gitHubSSHExampleSource := extractModuleSource("source=\"git@github.com:hashicorp/example.git\"")
+	gitHubSSHExampleSource := extractModuleSource("git@github.com:hashicorp/example.git")
 	assert.Equal(t, "git@github.com:hashicorp/example.git", gitHubSSHExampleSource, "readFiles :: extractRefAndPath :: repo :: "+gitHubSSHExampleSource)
 
-	gitGitHubExampleSource := extractModuleSource("source=\"git::https://github.com/test_repo_labala?ref=1.3.1\"")
+	gitGitHubExampleSource := extractModuleSource("git::https://github.com/test_repo_labala?ref=1.3.1")
 	assert.Equal(t, "https://github.com/test_repo_labala?ref=1.3.1", gitGitHubExampleSource, "readFiles :: extractRefAndPath :: repo :: "+gitGitHubExampleSource)
 
-	bitbucketExampleSource := extractModuleSource("source=\"bitbucket.org/hashicorp/terraform-consul-aws?ref=1.0.0&test=woho\"")
+	bitbucketExampleSource := extractModuleSource("bitbucket.org/hashicorp/terraform-consul-aws?ref=1.0.0&test=woho")
 	assert.Equal(t, "bitbucket.org/hashicorp/terraform-consul-aws?ref=1.0.0&test=woho", bitbucketExampleSource, "readFiles :: extractRefAndPath :: repo :: "+bitbucketExampleSource)
 
-	genericGitExampleSource := extractModuleSource("source=\"https://example.com/vpc.git?ref=1.1.0&test=woho\"")
+	genericGitExampleSource := extractModuleSource("https://example.com/vpc.git?ref=1.1.0&test=woho")
 	assert.Equal(t, "https://example.com/vpc.git?ref=1.1.0&test=woho", genericGitExampleSource, "readFiles :: extractRefAndPath :: repo :: "+genericGitExampleSource)
 
-	gitParamExampleSource := extractModuleSource("source=\"https://example.com/vpc.git?depth=1&ref=v1.2.0\"")
+	gitParamExampleSource := extractModuleSource("https://example.com/vpc.git?depth=1&ref=v1.2.0")
 	assert.Equal(t, "https://example.com/vpc.git?depth=1&ref=v1.2.0", gitParamExampleSource, "readFiles :: extractRefAndPath :: repo :: "+gitParamExampleSource)
 
 	slog.Debug("repos and refs", gitHubExampleSource, bitbucketExampleSource, genericGitExampleSource, gitParamExampleSource)
