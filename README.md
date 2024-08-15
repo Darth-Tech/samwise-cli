@@ -49,7 +49,13 @@ As your repositories grow and you reference your modules in other repositories, 
 ## Solution
 `samwise` Searches your repository for usages of modules and generates a report of the modules that have updates available along with all the versions that are more advanced than the version used currently.
 ## Install instructions
-Easier ways are on the way :)
+### Homebrew
+```
+brew tap darth-tech/tap
+brew install samwise-cli
+```
+
+### From source
 ```shell
 git clone https://github.com/Darth-Tech/samwise-cli
 cd samwise-cli
