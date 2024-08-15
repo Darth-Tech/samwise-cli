@@ -17,6 +17,9 @@ import (
 	"github.com/spf13/pflag"
 )
 
+var modulesListTotal []map[string]string
+var failureListTotal []map[string]string
+
 // checkForUpdatesCmd represents the checkForUpdates command
 var checkForUpdatesCmd = &cobra.Command{
 	Use:   "checkForUpdates --path=[Directory with module usage]",
@@ -52,7 +55,8 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 					return fs.SkipDir
 				}
 				modules, failureList = checkForModuleSourceUpdates(path)
-
+				modulesListTotal = append(modulesListTotal, modules...)
+				failureListTotal = append(failureListTotal, failureList...)
 			}
 			return nil
 		})
@@ -77,28 +81,27 @@ func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string
 	bar := progressbar.Default(int64(len(modules)))
 	slog.Debug("checkForUpdates :: command :: path: " + path)
 	slog.Info("Scanning directory " + path + " ...")
-	if modules != nil {
-		for _, module := range modules {
-			err := bar.Add(1)
-			Check(err, "progressbar error")
-			slog.Debug(module["repo"])
-			if !slices.Contains(listWritten, module["repo"]) {
-				tagsList, err := processGitRepo(module["repo"], module["current_version"])
-				if err != nil {
-					failureList = append(failureList, map[string]string{
-						"repo":              module["repo"],
-						"current_version":   module["current_version"],
-						"updates_available": tagsList,
-						"error":             err.Error(),
-					})
-				}
-				if len(tagsList) > 0 {
-					module["updates_available"] = tagsList
-					listWritten = append(listWritten, module["repo"])
-				}
+	for _, module := range modules {
+		err := bar.Add(1)
+		Check(err, "progressbar error")
+		slog.Debug(module["repo"])
+		if !slices.Contains(listWritten, module["repo"]) {
+			tagsList, err := processGitRepo(module["repo"], module["current_version"])
+			if err != nil {
+				failureList = append(failureList, map[string]string{
+					"repo":              module["repo"],
+					"current_version":   module["current_version"],
+					"updates_available": tagsList,
+					"error":             err.Error(),
+				})
+			}
+			if len(tagsList) > 0 {
+				module["updates_available"] = tagsList
+				listWritten = append(listWritten, module["repo"])
 			}
 		}
 	}
+
 	return modules, failureList
 }
 

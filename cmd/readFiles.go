@@ -21,7 +21,6 @@ var (
 	}
 	removeUrlParams = regexp.MustCompile(`(\?.*)`)
 	refRegex        = regexp.MustCompile(".*?ref=(.*)&.*|.*?ref=(.*)")
-	moduleRepoList  []map[string]string
 )
 
 func fixTrailingSlashForPath(path string) string {
@@ -123,6 +122,8 @@ func preProcessingSourceString(line string) (string, string, string) {
 }
 
 func processRepoLinksAndTags(path string) []map[string]string {
+	var moduleRepoList []map[string]string
+
 	files, err := os.ReadDir(fixTrailingSlashForPath(path))
 	if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to read directory", path) {
 		return nil
