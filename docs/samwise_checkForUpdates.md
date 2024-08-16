@@ -4,7 +4,9 @@ search for updates for terraform modules using in your code and generate a repor
 
 ### Synopsis
 
-Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
+
+	
+	Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
 
 CSV format : repo_link | current_version | updates_available
 
@@ -42,4 +44,5 @@ samwise checkForUpdates --path=[Directory with module usage] [flags]
 ### SEE ALSO
 
 * [samwise](samwise.md)	 - A CLI application to accompany on your terraform module journey and sharing your burden of module dependency updates, just as one brave Hobbit helped Frodo carry his :)
+* [samwise checkForUpdates ci](samwise_checkForUpdates_ci.md)	 - For CI integrations
 

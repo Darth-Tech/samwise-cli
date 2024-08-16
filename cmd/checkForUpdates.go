@@ -24,7 +24,9 @@ var failureListTotal []map[string]string
 var checkForUpdatesCmd = &cobra.Command{
 	Use:   "checkForUpdates --path=[Directory with module usage]",
 	Short: "search for updates for terraform modules using in your code and generate a report",
-	Long: `Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
+	Long: `
+	
+	Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
 
 CSV format : repo_link | current_version | updates_available
 
@@ -36,9 +38,13 @@ JSON format: [{
 
 An update is never late, nor is it early, it arrives precisely when it means to.
 	`,
-	Run: func(cmd *cobra.Command, args []string) {
 
+	Run: func(cmd *cobra.Command, args []string) {
 		slog.Debug("creating a report...")
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
 		depth, rootDir, directoriesToIgnore, outputFormat, outputFilename := getParamsForCheckForUpdatesCMD(cmd.Flags())
 		slog.Debug("output format: " + outputFormat)
 		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(depth)), slog.String("rootDir", rootDir), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
@@ -122,21 +128,21 @@ func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	checkForUpdatesCmd.Flags().IntP("depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction.")
-	checkForUpdatesCmd.Flags().String("path", "", "The path for directory containing terraform code to extract modules from.")
-	checkForUpdatesCmd.Flags().String("git-repo", "g", "Git Repository to check module dependencies on.")
-	checkForUpdatesCmd.Flags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
-	checkForUpdatesCmd.Flags().StringP("output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
-	checkForUpdatesCmd.Flags().StringP("output-filename", "f", "module_report", "Output file name.")
 	//checkForUpdatesCmd.Flags().Bool("ci", false, "Set this flag for usage in CI systems. Does not generate a report. Prints JSON to Stdout and returns exit code 1 if modules are outdated.")
 	//checkForUpdatesCmd.Flags().Bool("allow-failure", true, "Set this flag for usage in CI systems. If true, does NOT exit code 1 when modules are outdated.")
+	rootCmd.AddCommand(checkForUpdatesCmd)
+
+	checkForUpdatesCmd.PersistentFlags().IntP("depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction.")
+	checkForUpdatesCmd.PersistentFlags().String("path", "", "The path for directory containing terraform code to extract modules from.")
+	checkForUpdatesCmd.PersistentFlags().String("git-repo", "g", "Git Repository to check module dependencies on.")
+	checkForUpdatesCmd.PersistentFlags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
+	checkForUpdatesCmd.PersistentFlags().StringP("output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
+	checkForUpdatesCmd.Flags().StringP("output-filename", "f", "module_report", "Output file name.")
 
 	err := checkForUpdatesCmd.MarkFlagRequired("path")
 	if err != nil {
 		return
 	}
-	rootCmd.AddCommand(checkForUpdatesCmd)
-
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
