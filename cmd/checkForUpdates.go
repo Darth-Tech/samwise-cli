@@ -82,11 +82,14 @@ func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string
 	var modules []map[string]string
 	var failureList []map[string]string
 	var listWritten []string
+	var bar *progressbar.ProgressBar
 	path = fixTrailingSlashForPath(path)
 	modules = processRepoLinksAndTags(path)
-	bar := progressbar.Default(int64(len(modules)))
 	slog.Debug("checkForUpdates :: command :: path: " + path)
 	slog.Info("Scanning directory " + path + " ...")
+	if len(modules) > 0 {
+		bar = progressbar.Default(int64(len(modules)))
+	}
 	for _, module := range modules {
 		err := bar.Add(1)
 		Check(err, "progressbar error")
