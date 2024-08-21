@@ -24,12 +24,14 @@ samwise checkForUpdates ci [flags]
 ### Options inherited from parent commands
 
 ```
-      --config string        config file (default is $HOME/.samwise.yaml)
-  -d, --depth int            Folder depth to search for modules in. Give -1 for a full directory extraction.
-      --git-repo string      Git Repository to check module dependencies on. (default "g")
-  -i, --ignore stringArray   Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
-  -o, --output string        Output format. Supports "csv" and "json". Default value is csv. (default "csv")
-      --path string          The path for directory containing terraform code to extract modules from.
+      --config string            config file (default is $HOME/.samwise.yaml)
+  -d, --depth int                Folder depth to search for modules in. Give -1 for a full directory extraction.
+      --git-repo string          Git Repository to check module dependencies on. (default "g")
+  -i, --ignore stringArray       Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
+  -o, --output string            Output format. Supports "csv" and "json". Default value is csv. (default "csv")
+  -f, --output-filename string   Output file name. (default "module_report")
+      --path string              The path for directory containing terraform code to extract modules from. (default "p")
+  -v, --verbose                  The path for directory containing terraform code to extract modules from.
 ```
 
 ### SEE ALSO
