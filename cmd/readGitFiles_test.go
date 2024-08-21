@@ -108,6 +108,10 @@ func TestUnhappyClonePublicRepo(t *testing.T) {
 	assert.Empty(t, r, "readGit_files.go :: cloneRepo :: repository is not nil")
 	assert.Contains(t, err.Error(), errorHandlers.CloningErrorPrefix)
 
+	empty, err := cloneRepo("")
+	assert.Empty(t, empty, "readGit_files.go :: cloneRepo :: repository is not nil")
+	assert.Contains(t, err.Error(), errorHandlers.CloningErrorPrefix)
+
 }
 
 func TestHappyGetTags(t *testing.T) {
@@ -126,6 +130,12 @@ func TestUnhappyGetTags(t *testing.T) {
 	assert.Empty(t, err, "readGit_files.go :: getTags :: err is not nil")
 	moreLatestTags := getTags(r, "0.4.1")
 	assert.Empty(t, moreLatestTags)
+
+	empty, err := cloneRepo("")
+	assert.NotEmpty(t, err, "readGit_files.go :: getTags :: err is nil")
+	assert.Empty(t, empty, "readGit_files.go :: getTags :: r is not nil")
+	latestTags := getTags(r, "0.4.1")
+	assert.Empty(t, latestTags)
 }
 
 func TestGetSemverGreaterThanCurrent(t *testing.T) {
@@ -134,4 +144,21 @@ func TestGetSemverGreaterThanCurrent(t *testing.T) {
 	assert.Equal(t, true, getSemverGreaterThanCurrent("1.0.0-alpha", "1.0.0"))
 	assert.Equal(t, true, getSemverGreaterThanCurrent("1.0.0-alpha", "1.0.0-beta"))
 	assert.Equal(t, false, getSemverGreaterThanCurrent("chaos", "1.0.0-beta"))
+	assert.Equal(t, false, getSemverGreaterThanCurrent("1.0.0-beta", "chaos"))
+
+}
+
+func TestProcessGitRepo(t *testing.T) {
+	_, updatedTags, err := processGitRepo("https://github.com/Darth-Tech/terraform-modules.git", "v1.0.2")
+	assert.Empty(t, err, "readGitFiles :: processGitRepo :: error is not empty")
+	assert.Equal(t, "v1.0.3-beta", updatedTags)
+
+	_, multipleTags, err := processGitRepo("https://github.com/Darth-Tech/terraform-modules.git", "v1.0.1")
+	assert.Empty(t, err, "readGitFiles :: processGitRepo :: error is not empty")
+	assert.Contains(t, multipleTags, "v1.0.2")
+	assert.Contains(t, multipleTags, "v1.0.3-beta")
+
+	_, empty, err := processGitRepo("", "v1.0.1")
+	assert.Empty(t, empty, "readGitFiles :: processGitRepo :: error is not empty")
+	assert.NotEmpty(t, err)
 }

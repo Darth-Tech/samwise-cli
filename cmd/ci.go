@@ -1,10 +1,17 @@
+//coverage:ignore
 /*
 Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 */
 package cmd
 
 import (
-	"fmt"
+	"io/fs"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -20,11 +27,43 @@ var ciCmd = &cobra.Command{
 
 Not all those who don't update dependencies are lost.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ci called")
+		slog.Debug("Ci stuff... in "+Path, "args", len(args))
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		depth, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
+		slog.Debug("output format: " + OutputFormat)
+		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
+		rootDir := fixTrailingSlashForPath(Path)
+		var modules []map[string]string
+		var failureList []map[string]string
+		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
+			Check(err, "ci :: command :: ", path)
+			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
+			if d.IsDir() && !slices.Contains(directoriesToIgnore, d.Name()) {
+				slog.Debug("ci :: command :: in directory " + path)
+				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+depth {
+					slog.Debug("...which is skipped")
+					return fs.SkipDir
+				}
+				files, err := os.ReadDir(fixTrailingSlashForPath(path))
+				Check(err, "util :: updateTfFiles :: unable to read dir")
+				for _, file := range files {
+					fullPath := path + "/" + file.Name()
+					updateTfFiles(fullPath)
+				}
+				modulesListTotal = append(modulesListTotal, modules...)
+				failureListTotal = append(failureListTotal, failureList...)
+			}
+			return nil
+		})
+		Check(err, "checkForUpdates :: command :: unable to walk the directories")
 	},
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
 	checkForUpdatesCmd.AddCommand(ciCmd)
 
 	// Here you will define your flags and configuration settings.

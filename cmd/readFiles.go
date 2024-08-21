@@ -11,13 +11,13 @@ import (
 
 var (
 	// Regex to check if the line has "source=" in it
-	sourceLineRegex      = regexp.MustCompile(`(?mU).*module\".+\".*{.*source="(.+\..+)".*}.*`)
+	// sourceLineRegex      = regexp.MustCompile(`(?mU).*module\".+\".*{.*source="(.+\..+)".*}.*`)
 	submoduleRegex       = regexp.MustCompile(`(?P<base_url>.*/.*)//(?P<submodule>.*)`)
 	moduleSourceRegexMap = map[string]*regexp.Regexp{
-		"generic_git": regexp.MustCompile(`git::(.+)`),
-		"github":      regexp.MustCompile(`(.*github.com.+)`),
-		"https":       regexp.MustCompile(`(https://.+)`),
-		"bitbucket":   regexp.MustCompile(`.*(bitbucket.org.+)`),
+		"generic_git": regexp.MustCompile(`\"git::(.+)\"`),
+		"github":      regexp.MustCompile(`\"(.*github.com.+)\"`),
+		"https":       regexp.MustCompile(`\"(https://.+)\"`),
+		"bitbucket":   regexp.MustCompile(`\".*(bitbucket.org.+)\"`),
 	}
 	removeUrlParams = regexp.MustCompile(`(\?.*)`)
 	refRegex        = regexp.MustCompile(".*?ref=(.*)&.*|.*?ref=(.*)")
@@ -80,6 +80,7 @@ func extractRefAndPath(sourceUrl string) (string, string, string) {
 	submodulePaths = removeUrlParams.ReplaceAllString(submodulePathsParams, "")
 	baseUrl = removeUrlParams.ReplaceAllString(baseUrl, "")
 	refTag = getTagFromUrl(sourceUrl)
+	slog.Debug("readFiles :: extractRefAndPath :: ", "tag", refTag, "baseUrl", baseUrl, "submodulePaths", submodulePaths)
 
 	return baseUrl, refTag, submodulePaths
 }
@@ -87,7 +88,7 @@ func extractRefAndPath(sourceUrl string) (string, string, string) {
 func extractModuleSource(match string) string {
 	var matchedString = ""
 	if len(match) > 0 {
-		matchedString = match
+		matchedString = strings.ReplaceAll(match, "git::", "")
 		if strings.Contains(matchedString, "@") {
 			matchedString = strings.ReplaceAll(matchedString, "git::", "")
 			return matchedString
@@ -110,13 +111,13 @@ func preProcessingSourceString(line string) (string, string, string) {
 
 	repoLink := extractModuleSource(line)
 	//repoLink := sourceLineCheck[1]
-	slog.Debug("Git repo link before: " + repoLink)
+	slog.Debug("readFiles :: preProcessingSourceString :: Git repo link before:: " + repoLink)
 	var sourceUrl, refTag, submodule string
 	if repoLink != "" {
 
 		sourceUrl, refTag, submodule = extractRefAndPath(repoLink)
 	}
-	slog.Debug("Git repo link after: " + sourceUrl)
+	slog.Debug("readFiles :: preProcessingSourceString :: Git repo link after: " + sourceUrl)
 	return sourceUrl, refTag, submodule
 
 }
@@ -130,24 +131,15 @@ func processRepoLinksAndTags(path string) []map[string]string {
 	}
 	for _, file := range files {
 		fullPath := path + "/" + file.Name()
-		f, err := os.ReadFile(fullPath)
 
-		if err != nil {
-			if strings.Contains(err.Error(), "directory") {
-				slog.Debug(err.Error())
-				continue
-			} else {
-				CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to readfile")
-			}
-		}
-		fileContent := string(f)
-		fileContent = strings.ReplaceAll(fileContent, " ", "")
-		fileContent = strings.ReplaceAll(fileContent, "\\", "")
-		fileContent = strings.ReplaceAll(fileContent, "\n", "")
-		matches := sourceLineRegex.FindAllStringSubmatch(fileContent, -1)
-		for _, match := range matches {
-			repo, tag, submodule := preProcessingSourceString(match[1])
-			slog.Debug("readFiles :: processRepoLinksAndTags :: repo url :: " + repo)
+		sourcesInFile := readTfFiles(fullPath)
+
+		for _, match := range sourcesInFile {
+			match = strings.ReplaceAll(match, "\"", "")
+			match = strings.ReplaceAll(match, " ", "")
+			slog.Debug("readFiles :: processRepoLinksAndTags :: match :: ", "match", match)
+			repo, tag, submodule := preProcessingSourceString(match)
+			slog.Debug("readFiles :: processRepoLinksAndTags :: ", "repo", repo, "tag", tag, "submodule", submodule)
 			if repo != "" {
 				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag, "submodule": submodule})
 			}
