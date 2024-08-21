@@ -87,6 +87,8 @@ func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string
 	path = fixTrailingSlashForPath(path)
 	modules = processRepoLinksAndTags(path)
 	slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path: " + path)
+
+
 	slog.Info("Scanning directory " + path + " ...")
 	if len(modules) > 0 {
 		bar = progressbar.Default(int64(len(modules)))
