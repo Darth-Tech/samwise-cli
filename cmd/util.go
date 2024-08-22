@@ -18,7 +18,7 @@ type reportJson struct {
 	Report []jsonReport `json:"report"`
 }
 type jsonReport struct {
-	RepoLink         string `json:"repo_Link"`
+	RepoLink         string `json:"repo"`
 	CurrentVersion   string `json:"current_version"`
 	UpdatesAvailable string `json:"updates_available"`
 	Error            string `json:"error"`
