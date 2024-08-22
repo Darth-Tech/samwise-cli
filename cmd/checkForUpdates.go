@@ -47,9 +47,9 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 
 	Run: func(cmd *cobra.Command, args []string) {
 		slog.Debug("creating a report..."+Path, "verbose", Verbose)
-		depth, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
+		_, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
 		slog.Debug("output format: " + OutputFormat)
-		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
+		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(Depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
 		rootDir := fixTrailingSlashForPath(Path)
 		var modules []map[string]string
 		var failureList []map[string]string
@@ -58,7 +58,7 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
 			if d.IsDir() && !slices.Contains(directoriesToIgnore, d.Name()) {
 				slog.Debug("checkForUpdates :: command :: in directory " + path)
-				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+depth {
+				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+Depth {
 					slog.Debug("...which is skipped")
 					return fs.SkipDir
 				}

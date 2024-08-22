@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"io/fs"
+	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -13,8 +14,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/spf13/cobra"
 )
+
+var filesUpdatedTotal []string
 
 // ciCmd represents the ci command
 var ciCmd = &cobra.Command{
@@ -32,9 +36,9 @@ Not all those who don't update dependencies are lost.`,
 			cmd.Help()
 			os.Exit(0)
 		}
-		depth, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
+		_, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
 		slog.Debug("output format: " + OutputFormat)
-		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
+		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(Depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
 		rootDir := fixTrailingSlashForPath(Path)
 		var modules []map[string]string
 		var failureList []map[string]string
@@ -43,23 +47,41 @@ Not all those who don't update dependencies are lost.`,
 			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
 			if d.IsDir() && !slices.Contains(directoriesToIgnore, d.Name()) {
 				slog.Debug("ci :: command :: in directory " + path)
-				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+depth {
+				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+Depth {
 					slog.Debug("...which is skipped")
 					return fs.SkipDir
 				}
-				files, err := os.ReadDir(fixTrailingSlashForPath(path))
-				Check(err, "util :: updateTfFiles :: unable to read dir")
-				for _, file := range files {
-					fullPath := path + "/" + file.Name()
-					updateTfFiles(fullPath)
+
+				tf, err := tfexec.NewTerraform(workingDir, execPath)
+				if err != nil {
+					log.Fatalf("error running NewTerraform: %s", err)
 				}
+				tf.Format()
+
+				filesUpdated := createModuleVersionUpdates(path)
+				filesUpdatedTotal = append(filesUpdatedTotal, filesUpdated...)
+				filesUpdatedTotal = removeDuplicateStr(filesUpdatedTotal)
 				modulesListTotal = append(modulesListTotal, modules...)
 				failureListTotal = append(failureListTotal, failureList...)
 			}
 			return nil
 		})
-		Check(err, "checkForUpdates :: command :: unable to walk the directories")
+		Check(err, "ci :: command :: unable to walk the directories")
+		slog.Debug("ci :: command :: filesUpdatedTotal", "filesUpdatedTotal", filesUpdatedTotal)
+
 	},
+}
+
+func createModuleVersionUpdates(path string) []string {
+	files, err := os.ReadDir(fixTrailingSlashForPath(path))
+	var filesUpdated []string
+	Check(err, "util :: updateTfFiles :: unable to read dir")
+	for _, file := range files {
+		filesEdited := updateTfFiles(path, file.Name())
+		filesUpdated = append(filesUpdated, filesEdited...)
+	}
+	slog.Debug("ci :: command :: files", "files", filesUpdated)
+	return filesUpdated
 }
 
 func init() {

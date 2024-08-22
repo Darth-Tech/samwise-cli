@@ -135,8 +135,7 @@ func processRepoLinksAndTags(path string) []map[string]string {
 		sourcesInFile := readTfFiles(fullPath)
 
 		for _, match := range sourcesInFile {
-			match = strings.ReplaceAll(match, "\"", "")
-			match = strings.ReplaceAll(match, " ", "")
+			match = cleanUpSourceString(match)
 			slog.Debug("readFiles :: processRepoLinksAndTags :: match :: ", "match", match)
 			repo, tag, submodule := preProcessingSourceString(match)
 			slog.Debug("readFiles :: processRepoLinksAndTags :: ", "repo", repo, "tag", tag, "submodule", submodule)

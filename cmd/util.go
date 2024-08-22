@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -50,6 +49,12 @@ func CheckNonPanic(err error, message string, args ...any) bool {
 		return true
 	}
 	return false
+}
+
+func cleanUpSourceString(source string) string {
+	source = strings.ReplaceAll(source, "\"", "")
+	source = strings.ReplaceAll(source, " ", "")
+	return source
 }
 func generateReport(data []map[string]string, outputFilename string, outputFormat string, path string) {
 	if outputFormat == outputs.CSV {
@@ -154,13 +159,14 @@ func readTfFiles(path string) []string {
 	return sources
 }
 
-func updateTfFiles(filepath string) []string {
+func updateTfFiles(path string, fileName string) []string {
 	slog.Debug("util :: updateTfFiles :: starting :: " + time.DateOnly)
+	fullPath := path + "/" + fileName
 	var sources = make([]string, 0)
 
-	slog.Debug("util :: updateTfFiles :: reading file", "filename", filepath)
-	content, _ := os.ReadFile(filepath)
-	file, _ := hclwrite.ParseConfig(content, filepath, hcl.Pos{Line: 1, Column: 1})
+	slog.Debug("util :: updateTfFiles :: reading file", "filename", fullPath)
+	content, _ := os.ReadFile(fullPath)
+	file, _ := hclwrite.ParseConfig(content, fullPath, hcl.Pos{Line: 1, Column: 1})
 	if file == nil {
 		return []string{}
 	}
@@ -172,8 +178,7 @@ func updateTfFiles(filepath string) []string {
 				slog.Debug("util :: updateTfFiles :: module source detected")
 				sourceString := block.Body().GetAttribute("source").Expr().BuildTokens(nil).Bytes()
 				moduleSource := string(sourceString)
-				moduleSource = strings.ReplaceAll(moduleSource, "\"", "")
-				moduleSource = strings.ReplaceAll(moduleSource, " ", "")
+				moduleSource = cleanUpSourceString(moduleSource)
 				slog.Debug("util :: updateTfFiles :: sourceString :: ", "sourceString", moduleSource)
 				moduleSource = extractModuleSource(moduleSource)
 				slog.Debug("util :: updateTfFiles :: moduleSource :: ", "moduleSource", moduleSource)
@@ -188,35 +193,33 @@ func updateTfFiles(filepath string) []string {
 					if largestTag == "" {
 						continue
 					}
+					sources = append(sources, fileName)
+					slog.Debug("util :: updateTfFiles :: file to be updated :: ", "filename", fileName)
 					slog.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", string(moduleSource), "tag", largestTag, "tagList", tagsList)
 					currentSourceString := strings.Replace(string(moduleSource), refTag, largestTag, 1)
 					slog.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", moduleSource, "tag", largestTag, "tagList", tagsList)
-
-					writeAttr := block.Body().SetAttributeValue("source", cty.StringVal(currentSourceString))
-					slog.Debug("written to file", "writeAttr", string(writeAttr.Expr().BuildTokens(nil).Bytes()))
-					fmt.Printf("util :: updateTfFiles :: body :: %v", string(block.Body().BuildTokens(nil).Bytes()))
-					writeFile, err := os.OpenFile(filepath, os.O_WRONLY, os.ModePerm)
-					Check(err, "util :: updateTfFiles :: write to file error")
-					_, err = writeFile.Write(file.Bytes())
-					//fileInfo, err := writeFile.Stat()
-					Check(err, "util :: updateTfFiles :: write to file error")
-					slog.Debug("util :: updateTfFiles :: path of output", "output", writeFile.Name(), "file_bytes", string(file.Bytes()))
-					slog.Debug("util :: updateTfFiles :: closing file", "filename", writeFile.Name())
-					err = writeFile.Close()
-					if !CheckNonPanic(err, "util :: updateTfFiles :: unable to close file") {
-						FilesWritten = append(FilesWritten, filepath)
-					}
-					slog.Debug("util :: updateTfFiles :: writing to repo")
-					writeCommit(Path)
-
+					writeHclBlockToFile(file, block, fullPath, "source", currentSourceString)
 				}
-
-				sources = append(sources, moduleSource)
 			}
 		}
 	}
+	slog.Debug("util :: updateTfFiles :: sources :: ", slog.Any("sources", sources))
 
 	return sources
+}
+
+func writeHclBlockToFile(file *hclwrite.File, block *hclwrite.Block, path string, attr string, value any) {
+	writeAttr := block.Body().SetAttributeValue(attr, cty.StringVal(value.(string)))
+	slog.Debug("written to file", "writeAttr", string(writeAttr.Expr().BuildTokens(nil).Bytes()))
+	writeFile, err := os.OpenFile(path, os.O_WRONLY, os.ModePerm)
+	Check(err, "util :: updateTfFiles :: open file error")
+	_, err = writeFile.Write(file.Bytes())
+	Check(err, "util :: updateTfFiles :: write to file error")
+	slog.Debug("util :: updateTfFiles :: path of output", "output", writeFile.Name(), "file_bytes", string(file.Bytes()))
+	err = writeFile.Close()
+	CheckNonPanic(err, "util :: updateTfFiles :: unable to close file")
+	slog.Debug("util :: updateTfFiles :: file closed")
+
 }
 
 func getGreatestSemverFromList(tagsList string) string {
@@ -323,4 +326,16 @@ func writeCommit(repoPath string) error {
 	}
 	//repo.Push(&git.PushOptions{})
 	return nil
+}
+
+func removeDuplicateStr(strSlice []string) []string {
+	allKeys := make(map[string]bool)
+	list := []string{}
+	for _, item := range strSlice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
 }
