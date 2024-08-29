@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -15,8 +16,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/hc-install/product"
+	"github.com/hashicorp/hc-install/releases"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
 	"github.com/thundersparkf/samwise/cmd/outputs"
 	"github.com/zclconf/go-cty/cty"
@@ -193,7 +197,7 @@ func updateTfFiles(path string, fileName string) []string {
 					if largestTag == "" {
 						continue
 					}
-					sources = append(sources, fileName)
+					sources = append(sources, fullPath)
 					slog.Debug("util :: updateTfFiles :: file to be updated :: ", "filename", fileName)
 					slog.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", string(moduleSource), "tag", largestTag, "tagList", tagsList)
 					currentSourceString := strings.Replace(string(moduleSource), refTag, largestTag, 1)
@@ -253,8 +257,12 @@ func getSemverGreaterThanCurrent(currentVersion string, versionToCheck string) b
 }
 
 func writeCommit(repoPath string) error {
-	slog.Debug("opening repo")
+	slog.Debug("util :: writeCommit :: opening repo")
+
 	repo, err := git.PlainOpen(repoPath)
+	CheckNonPanic(err, "util :: writeCommit :: failed to open repo")
+
+	//repo, err := git.Open(memory., memfs.New())
 	if CheckNonPanic(err, "util :: writeCommit :: unable to open repo") {
 		return err
 	}
@@ -268,7 +276,7 @@ func writeCommit(repoPath string) error {
 	}
 
 	w, err := repo.Worktree()
-
+	Check(err, "util :: writeCommit :: worktree not fetched")
 	slog.Debug("util :: writeCommit :: branch :: ", "branch", branch)
 
 	branchRefName := plumbing.NewBranchReferenceName(branch)
@@ -292,12 +300,11 @@ func writeCommit(repoPath string) error {
 			Create: false,
 		}
 		err = w.Checkout(&branchCoOpts)
+		Check(err, "util :: writeCommit :: failed checkout of branch")
 
 	}
 	_, err = w.Add(".")
-	if CheckNonPanic(err, "util :: writeCommit :: unable to add") {
-		return err
-	}
+	Check(err, "util :: writeCommit :: unable to add files")
 
 	_, err = w.Status()
 	if CheckNonPanic(err, "util :: writeCommit :: unable to fetch status") {
@@ -338,4 +345,25 @@ func removeDuplicateStr(strSlice []string) []string {
 		}
 	}
 	return list
+}
+
+func setupTerraform(workingDir string) *tfexec.Terraform {
+
+	installer := &releases.ExactVersion{
+		Product: product.Terraform,
+		Version: version.Must(version.NewVersion("1.0.6")),
+	}
+
+	execPath, err := installer.Install(context.Background())
+	if err != nil {
+		slog.Error("error installing Terraform: ", "err", err)
+		return nil
+	}
+
+	tf, err := tfexec.NewTerraform(workingDir, execPath)
+	if err != nil {
+		slog.Error("error running NewTerraform: ", "err", err)
+		return nil
+	}
+	return tf
 }

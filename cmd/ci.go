@@ -5,8 +5,8 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
 	"io/fs"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/spf13/cobra"
 )
 
@@ -40,6 +39,10 @@ Not all those who don't update dependencies are lost.`,
 		slog.Debug("output format: " + OutputFormat)
 		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(Depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
 		rootDir := fixTrailingSlashForPath(Path)
+		tf := setupTerraform(rootDir)
+		if tf == nil {
+			return
+		}
 		var modules []map[string]string
 		var failureList []map[string]string
 		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
@@ -51,13 +54,8 @@ Not all those who don't update dependencies are lost.`,
 					slog.Debug("...which is skipped")
 					return fs.SkipDir
 				}
-
-				tf, err := tfexec.NewTerraform(workingDir, execPath)
-				if err != nil {
-					log.Fatalf("error running NewTerraform: %s", err)
-				}
-				tf.Format()
-
+				err := tf.FormatWrite(context.TODO())
+				Check(err, "tf fmt failed")
 				filesUpdated := createModuleVersionUpdates(path)
 				filesUpdatedTotal = append(filesUpdatedTotal, filesUpdated...)
 				filesUpdatedTotal = removeDuplicateStr(filesUpdatedTotal)
@@ -68,6 +66,7 @@ Not all those who don't update dependencies are lost.`,
 		})
 		Check(err, "ci :: command :: unable to walk the directories")
 		slog.Debug("ci :: command :: filesUpdatedTotal", "filesUpdatedTotal", filesUpdatedTotal)
+		writeCommit(rootDir)
 
 	},
 }
