@@ -20,5 +20,7 @@ jobs:
                       mkdir test_dir
                       echo '${{ secrets.SSH_PRIVATE }}' > test_dir/id_rsa
             - name: Test with the Go CLI
-              run: go test -json ./cmd/...
+              run: |
+                ls -la
+                go test -json ./cmd/...
                 
