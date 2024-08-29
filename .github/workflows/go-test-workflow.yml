@@ -18,7 +18,7 @@ jobs:
             - name: setup ssh key for testing
               run: |
                       mkdir test_dir
-                      echo '${{ secrets.SSH_PRIVATE }}' > testid_rsaid_rsaid_rsaid_rsaid_rsaid_rsatest_dir/id_rsa
+                      echo '${{ secrets.SSH_PRIVATE }}' > test_dir/id_rsa
             - name: Test with the Go CLI
               run: go test -json ./cmd/...
                 
