@@ -22,5 +22,5 @@ jobs:
             - name: Test with the Go CLI
               run: |
                 ls -la
-                go test -json ./cmd/...
+                go test -v -json ./cmd/...
                 
