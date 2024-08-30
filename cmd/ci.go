@@ -22,7 +22,7 @@ var filesUpdatedTotal []string
 // ciCmd represents the ci command
 var ciCmd = &cobra.Command{
 	Use:   "ci",
-	Short: "For CI integrations",
+	Short: "For CI integrations[experimental]",
 	Long: `
 	
 	Includes features for better CI integrations such as failure when updates available 
@@ -95,5 +95,5 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// ciCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	ciCmd.Flags().Bool("update", false, "Updates the modules in the files and pushes the changes into a branch.")
 }
