@@ -175,3 +175,20 @@ func TestUnhappyCreateJSONReportFileNoData(t *testing.T) {
 	assert.Equal(t, expectedReport, results, "report not empty")
 	assert.Empty(t, results.Report, "reports are non-zero")
 }
+
+func TestReadTfFiles(t *testing.T) {
+
+	// TESTS TO READ FILE AND CHECK MODULE SOURCES
+
+}
+
+func TestGetGreatestSemverFromList(t *testing.T) {
+	list1 := "1.0.0|1.0.1|1.0.5|1.0.3-beta|1.0.3-alpha"
+	list2 := "1.0.0|v1.0.1|v1.0.3-beta|v1.0.5-alpha"
+	list3 := "1.0.0|1.0.1|1.0.3-beta|1.0.5-alpha|v1.0.5-beta"
+
+	assert.Equal(t, "1.0.5", getGreatestSemverFromList(list1))
+	assert.Equal(t, "v1.0.5-alpha", getGreatestSemverFromList(list2))
+	assert.Equal(t, "v1.0.5-beta", getGreatestSemverFromList(list3))
+
+}

@@ -12,7 +12,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	sshgit "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/go-git/go-git/v5/storage/memory"
-	"github.com/hashicorp/go-version"
 	"github.com/spf13/viper"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
 	"golang.org/x/crypto/ssh"
@@ -37,10 +36,6 @@ func gitAuthGenerator(url string) transport.AuthMethod {
 	publicKey := &sshgit.PublicKeys{User: username, Signer: signer, HostKeyCallbackHelper: sshgit.HostKeyCallbackHelper{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}}
-
-	if CheckNonPanic(err, "readGitFiles :: gitAuthGenerator :: unable to clone repo "+url) {
-		return nil
-	}
 	return publicKey
 }
 
@@ -108,26 +103,11 @@ func getTags(r *git.Repository, currentVersionTag string) string {
 	return ""
 }
 
-func getSemverGreaterThanCurrent(currentVersion string, versionToCheck string) bool {
-	currentVersionTag, err := version.NewVersion(currentVersion)
-	if err != nil {
-		return false
-	}
-	versionToCheckTag, err := version.NewVersion(versionToCheck)
-	if err != nil {
-		return false
-	}
-	if versionToCheckTag.GreaterThan(currentVersionTag) {
-		return true
-	}
-	return false
-
-}
-func processGitRepo(url string, currentVersionTag string) (string, error) {
+func processGitRepo(url string, currentVersionTag string) (*git.Repository, string, error) {
 	repo, err := cloneRepo(url)
 	if repo != nil {
 		tagsList := getTags(repo, currentVersionTag)
-		return tagsList, nil
+		return repo, tagsList, nil
 	}
-	return "", err
+	return nil, "", err
 }

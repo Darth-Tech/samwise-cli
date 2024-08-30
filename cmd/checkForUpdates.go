@@ -1,3 +1,4 @@
+//coverage:ignore
 /*
 Copyright © 2024 Agastya Dev Addepally (devagastya0@gmail.com)
 */
@@ -19,12 +20,19 @@ import (
 
 var modulesListTotal []map[string]string
 var failureListTotal []map[string]string
+var Path string
+var Verbose bool
+var OutputFormat string
+var OutputFilename string
+var Depth int
 
 // checkForUpdatesCmd represents the checkForUpdates command
 var checkForUpdatesCmd = &cobra.Command{
 	Use:   "checkForUpdates --path=[Directory with module usage]",
 	Short: "search for updates for terraform modules using in your code and generate a report",
-	Long: `Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
+	Long: `
+	
+	Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
 
 CSV format : repo_link | current_version | updates_available
 
@@ -36,13 +44,13 @@ JSON format: [{
 
 An update is never late, nor is it early, it arrives precisely when it means to.
 	`,
-	Run: func(cmd *cobra.Command, args []string) {
 
-		slog.Debug("creating a report...")
-		depth, rootDir, directoriesToIgnore, outputFormat, outputFilename := getParamsForCheckForUpdatesCMD(cmd.Flags())
-		slog.Debug("output format: " + outputFormat)
-		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(depth)), slog.String("rootDir", rootDir), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
-		rootDir = fixTrailingSlashForPath(rootDir)
+	Run: func(cmd *cobra.Command, args []string) {
+		slog.Debug("creating a report..."+Path, "verbose", Verbose)
+		_, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
+		slog.Debug("output format: " + OutputFormat)
+		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(Depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
+		rootDir := fixTrailingSlashForPath(Path)
 		var modules []map[string]string
 		var failureList []map[string]string
 		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
@@ -50,23 +58,22 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
 			if d.IsDir() && !slices.Contains(directoriesToIgnore, d.Name()) {
 				slog.Debug("checkForUpdates :: command :: in directory " + path)
-				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+depth {
+				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+Depth {
 					slog.Debug("...which is skipped")
 					return fs.SkipDir
 				}
 				modules, failureList = checkForModuleSourceUpdates(path)
+				slog.Debug("checkForUpdates :: command :: ", "modules", modules)
 				modulesListTotal = append(modulesListTotal, modules...)
 				failureListTotal = append(failureListTotal, failureList...)
 			}
 			return nil
 		})
-		//ci, _ := cmd.Flags().GetBool("ci")
-		//allowFailure, _ := cmd.Flags().GetBool("allow-failure")
 		Check(err, "checkForUpdates :: command :: unable to walk the directories")
-		outputFormat, err = checkOutputFormat(outputFormat)
-		Check(err, "checkForUpdates :: command :: output format error", outputFormat)
-		outputFilename = checkOutputFilename(outputFilename)
-		generateReport(modules, outputFilename, outputFormat, rootDir)
+		OutputFormat, err = checkOutputFormat(OutputFormat)
+		Check(err, "checkForUpdates :: command :: output format error", OutputFormat)
+		OutputFilename = checkOutputFilename(OutputFilename)
+		generateReport(modulesListTotal, OutputFilename, OutputFormat, rootDir)
 		createJSONReportFile(failureList, rootDir, "failure_report")
 
 	},
@@ -79,7 +86,9 @@ func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string
 	var bar *progressbar.ProgressBar
 	path = fixTrailingSlashForPath(path)
 	modules = processRepoLinksAndTags(path)
-	slog.Debug("checkForUpdates :: command :: path: " + path)
+	slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path: " + path)
+
+
 	slog.Info("Scanning directory " + path + " ...")
 	if len(modules) > 0 {
 		bar = progressbar.Default(int64(len(modules)))
@@ -87,9 +96,8 @@ func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string
 	for _, module := range modules {
 		err := bar.Add(1)
 		Check(err, "progressbar error")
-		slog.Debug(module["repo"])
 		if !slices.Contains(listWritten, module["repo"]) {
-			tagsList, err := processGitRepo(module["repo"], module["current_version"])
+			_, tagsList, err := processGitRepo(module["repo"], module["current_version"])
 			if err != nil {
 				failureList = append(failureList, map[string]string{
 					"repo":              module["repo"],
@@ -102,6 +110,8 @@ func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string
 				module["updates_available"] = tagsList
 				listWritten = append(listWritten, module["repo"])
 			}
+			slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path :: ", "repo", module["repo"], "current", module["current_version"], "updates_available", module["updates_available"])
+
 		}
 	}
 
@@ -125,20 +135,22 @@ func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	checkForUpdatesCmd.Flags().IntP("depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction.")
-	checkForUpdatesCmd.Flags().String("path", "", "The path for directory containing terraform code to extract modules from.")
-	checkForUpdatesCmd.Flags().String("git-repo", "g", "Git Repository to check module dependencies on.")
-	checkForUpdatesCmd.Flags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
-	checkForUpdatesCmd.Flags().StringP("output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
-	checkForUpdatesCmd.Flags().StringP("output-filename", "f", "module_report", "Output file name.")
 	//checkForUpdatesCmd.Flags().Bool("ci", false, "Set this flag for usage in CI systems. Does not generate a report. Prints JSON to Stdout and returns exit code 1 if modules are outdated.")
 	//checkForUpdatesCmd.Flags().Bool("allow-failure", true, "Set this flag for usage in CI systems. If true, does NOT exit code 1 when modules are outdated.")
+	rootCmd.AddCommand(checkForUpdatesCmd)
 
-	err := checkForUpdatesCmd.MarkFlagRequired("path")
+	checkForUpdatesCmd.PersistentFlags().IntVarP(&Depth, "depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction.")
+	checkForUpdatesCmd.PersistentFlags().StringVar(&Path, "path", "p", "The path for directory containing terraform code to extract modules from.")
+	checkForUpdatesCmd.PersistentFlags().String("git-repo", "g", "Git Repository to check module dependencies on.")
+	checkForUpdatesCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "The path for directory containing terraform code to extract modules from.")
+	checkForUpdatesCmd.PersistentFlags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
+	checkForUpdatesCmd.PersistentFlags().StringVarP(&OutputFormat, "output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
+	checkForUpdatesCmd.PersistentFlags().StringVarP(&OutputFilename, "output-filename", "f", "module_report", "Output file name.")
+
+	err := checkForUpdatesCmd.MarkPersistentFlagRequired("path")
 	if err != nil {
 		return
 	}
-	rootCmd.AddCommand(checkForUpdatesCmd)
 
 	// Here you will define your flags and configuration settings.
 

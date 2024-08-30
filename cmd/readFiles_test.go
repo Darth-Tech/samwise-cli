@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log/slog"
+	"os"
 	"regexp"
 	"testing"
 
@@ -145,4 +146,29 @@ func TestExtractSubmoduleFromSource(t *testing.T) {
 	assert.Equal(t, "https://example.com/testing/vpc.git", module)
 	assert.Equal(t, "submodule/folder1/folder2", submoduleWithDepths)
 
+}
+
+func TestProcessRepoLinksAndTags(t *testing.T) {
+	fileContent := `
+	module "test"{
+	  source         = "git::https://github.com/Darth-Tech/terraform-modules//modules/fargate-cluster?ref=v1.0.2"
+  	  cluster_name   = "my-ecs"
+	}
+	`
+	err := os.Mkdir("./test", os.ModePerm)
+	Check(err, "readFiles :: TestProcessRepoLinksAndTags :: ")
+	fo, err := os.Create("./test/main.tf")
+	if err != nil {
+		panic(err)
+	}
+	fo.WriteString(fileContent)
+	fo.Close()
+	data := processRepoLinksAndTags("./test/")
+	assert.Equal(t, 1, len(data))
+	assert.Equal(t, "https://github.com/Darth-Tech/terraform-modules", data[0]["repo"])
+	assert.Equal(t, "v1.0.2", data[0]["current_version"])
+	assert.Equal(t, "modules/fargate-cluster", data[0]["submodule"])
+
+	os.Remove("./test/main.tf")
+	os.Remove("./test/")
 }

@@ -4,7 +4,9 @@ search for updates for terraform modules using in your code and generate a repor
 
 ### Synopsis
 
-Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
+
+	
+	Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
 
 CSV format : repo_link | current_version | updates_available
 
@@ -30,7 +32,8 @@ samwise checkForUpdates --path=[Directory with module usage] [flags]
   -i, --ignore stringArray       Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
   -o, --output string            Output format. Supports "csv" and "json". Default value is csv. (default "csv")
   -f, --output-filename string   Output file name. (default "module_report")
-      --path string              The path for directory containing terraform code to extract modules from.
+      --path string              The path for directory containing terraform code to extract modules from. (default "p")
+  -v, --verbose                  The path for directory containing terraform code to extract modules from.
 ```
 
 ### Options inherited from parent commands
@@ -42,4 +45,5 @@ samwise checkForUpdates --path=[Directory with module usage] [flags]
 ### SEE ALSO
 
 * [samwise](samwise.md)	 - A CLI application to accompany on your terraform module journey and sharing your burden of module dependency updates, just as one brave Hobbit helped Frodo carry his :)
+* [samwise checkForUpdates ci](samwise_checkForUpdates_ci.md)	 - For CI integrations
 
