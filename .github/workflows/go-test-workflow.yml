@@ -17,9 +17,9 @@ jobs:
               run: go build -v ./...
             - name: setup ssh key for testing
               run: |
-                      install --directory ~/.ssh --mode 700
-                      echo '${{ secrets.SSH_PRIVATE }}' > ~/.ssh/id_rsa
-                      chmod 600 ~/.ssh/*
+                      mkdir cmd/test_dir
+                      echo '${{ secrets.SSH_PRIVATE }}' > cmd/test_dir/id_rsa
             - name: Test with the Go CLI
-              run: go test -json ./cmd/...
+              run: |
+                go test ./cmd/...
                 

@@ -32,7 +32,7 @@ type reportJson struct {
 	Report []jsonReport `json:"report"`
 }
 type jsonReport struct {
-	RepoLink         string `json:"repo_Link"`
+	RepoLink         string `json:"repo"`
 	CurrentVersion   string `json:"current_version"`
 	UpdatesAvailable string `json:"updates_available"`
 	Error            string `json:"error"`
@@ -85,7 +85,7 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 
 	writer := csv.NewWriter(report)
 	defer writer.Flush()
-	headers := []string{"repo_link", "current_version", "updates_available"}
+	headers := []string{"repo", "current_version", "updates_available"}
 
 	err = writer.Write(headers)
 	Check(err, "unable to write headers to file", reportFilePath)
