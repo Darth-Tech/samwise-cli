@@ -65,7 +65,7 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 
 	writer := csv.NewWriter(report)
 	defer writer.Flush()
-	headers := []string{"repo_link", "current_version", "updates_available"}
+	headers := []string{"repo", "current_version", "updates_available"}
 
 	err = writer.Write(headers)
 	Check(err, "unable to write headers to file", reportFilePath)
