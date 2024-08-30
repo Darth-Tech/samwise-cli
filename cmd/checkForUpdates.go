@@ -32,7 +32,7 @@ var checkForUpdatesCmd = &cobra.Command{
 	Use:   "checkForUpdates --path=[Directory with module usage]",
 	Short: "search for updates for terraform modules using in your code and generate a report",
 	Long: `
-	
+
 	Searches (sub)directories for module sources and versions to create a report listing versions available for updates.
 
 CSV format : repo_link | current_version | updates_available
@@ -97,7 +97,8 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 	for _, module := range modules {
 		err := bar.Add(1)
 		Check(err, "progressbar error")
-		if !slices.Contains(listWritten, module["repo"]) {
+		moduleUsed := module["repo"] + ":" + module["current_version"]
+		if !slices.Contains(listWritten, moduleUsed) {
 			_, tagsList, err := processGitRepo(module["repo"], module["current_version"])
 			if err != nil {
 				failureList = append(failureList, map[string]string{
@@ -114,7 +115,7 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 					module["updates_available"] = tagsList
 
 				}
-				listWritten = append(listWritten, module["repo"])
+				listWritten = append(listWritten, moduleUsed)
 			}
 			slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path :: ", "repo", module["repo"], "current", module["current_version"], "updates_available", module["updates_available"], "latest_update", module["latest_update"])
 
