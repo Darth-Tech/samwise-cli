@@ -33,9 +33,10 @@ type reportJson struct {
 }
 type jsonReport struct {
 	RepoLink         string `json:"repo"`
-	CurrentVersion   string `json:"current_version"`
-	UpdatesAvailable string `json:"updates_available"`
-	Error            string `json:"error"`
+	CurrentVersion   string `json:"current_version,omitempty"`
+	UpdatesAvailable string `json:"updates_available,omitempty"`
+	LatestVersion    string `json:"latest_update,omitempty"`
+	Error            string `json:"error,omitempty"`
 }
 
 func Check(err error, message string, args ...any) {
@@ -85,13 +86,21 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 
 	writer := csv.NewWriter(report)
 	defer writer.Flush()
-	headers := []string{"repo", "current_version", "updates_available"}
-
+	headers := []string{"repo", "current_version"}
+	if LatestVersion {
+		headers = append(headers, "latest_update")
+	} else {
+		headers = append(headers, "updates_available")
+	}
 	err = writer.Write(headers)
 	Check(err, "unable to write headers to file", reportFilePath)
 	for _, row := range data {
-		if len(row["updates_available"]) > 0 {
-			err := writer.Write([]string{row["repo"], row["current_version"], row["updates_available"]})
+		if len(row["updates_available"]) > 0 || row["latest_update"] != "" {
+			if LatestVersion {
+				err = writer.Write([]string{row["repo"], row["current_version"], row["latest_update"]})
+			} else {
+				err = writer.Write([]string{row["repo"], row["current_version"], row["updates_available"]})
+			}
 			Check(err, "util :: CreateCSVReportFile :: unable to write record to file", row["repo"], row["current_version"], row["updates_available"])
 			writer.Flush()
 		}
@@ -133,7 +142,14 @@ func createJSONReportFile(data []map[string]string, path string, filename string
 	err = json.Unmarshal(reportString, &reportJsonObject)
 	slog.Debug("util :: createJSONReportFile :: reportString :: " + string(reportString))
 	Check(err, "util :: createJSONReportFile :: unable unmarshal into output format")
-	finalReportMap := map[string][]jsonReport{"report": reportJsonObject}
+	var nonEmptyRecords []jsonReport
+	for _, value := range reportJsonObject {
+		if value.CurrentVersion != "" {
+			nonEmptyRecords = append(nonEmptyRecords, value)
+		}
+	}
+	finalReportMap := map[string][]jsonReport{"report": nonEmptyRecords}
+
 	reportOutputString, err := json.Marshal(finalReportMap)
 	Check(err, "unable to marshal finalReportMap")
 	_, err = report.Write(reportOutputString)
