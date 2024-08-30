@@ -95,5 +95,4 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	ciCmd.Flags().Bool("update", false, "Updates the modules in the files and pushes the changes into a branch.")
 }
