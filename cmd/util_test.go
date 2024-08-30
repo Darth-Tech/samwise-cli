@@ -130,7 +130,7 @@ func TestHappyCreateCSVReportFileLatestVersion(t *testing.T) {
 	assert.Equal(t, len(results), 3)
 	assert.Equal(t, data[0]["repo"], results[1][0], "repo link mismatch")
 	assert.Equal(t, data[0]["current_version"], results[1][1], "current_version mismatch")
-	assert.Equal(t, data[0]["latest_version"], results[1][2], "latest_version mismatch")
+	assert.Equal(t, data[0]["updates_available"], results[1][2], "latest_version mismatch")
 
 }
 
