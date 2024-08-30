@@ -1,6 +1,6 @@
 ## samwise checkForUpdates ci
 
-For CI integrations
+For CI integrations[experimental]
 
 ### Synopsis
 

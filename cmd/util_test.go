@@ -119,6 +119,21 @@ func TestHappyCreateCSVReportFile(t *testing.T) {
 
 }
 
+func TestHappyCreateCSVReportFileLatestVersion(t *testing.T) {
+	data := []map[string]string{
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "latest_version": "2.7.8"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3", "latest_version": "3.2.3"},
+	}
+	// Set cobra flag for testing
+	createCSVReportFile(data, ".", "module_report")
+	results := readCsvFile("." + "/module_report.csv")
+	assert.Equal(t, len(results), 3)
+	assert.Equal(t, data[0]["repo"], results[1][0], "repo link mismatch")
+	assert.Equal(t, data[0]["current_version"], results[1][1], "current_version mismatch")
+	assert.Equal(t, data[0]["updates_available"], results[1][2], "latest_version mismatch")
+
+}
+
 func TestUnhappyCreateCSVReportFileNoData(t *testing.T) {
 	var data = make([]map[string]string, 0)
 	createCSVReportFile(data, ".", "module_dependency_report")
@@ -169,7 +184,7 @@ func TestHappyCreateJSONReportFileNoData(t *testing.T) {
 
 func TestUnhappyCreateJSONReportFileNoData(t *testing.T) {
 	var data = make([]map[string]string, 0)
-	var expectedReport = reportJson{[]jsonReport{}}
+	var expectedReport = reportJson{[]jsonReport(nil)}
 	createJSONReportFile(data, ".", "module_dependency_report")
 	results := readJSONFile("." + "/module_dependency_report.json")
 	assert.Equal(t, expectedReport, results, "report not empty")
@@ -186,9 +201,11 @@ func TestGetGreatestSemverFromList(t *testing.T) {
 	list1 := "1.0.0|1.0.1|1.0.5|1.0.3-beta|1.0.3-alpha"
 	list2 := "1.0.0|v1.0.1|v1.0.3-beta|v1.0.5-alpha"
 	list3 := "1.0.0|1.0.1|1.0.3-beta|1.0.5-alpha|v1.0.5-beta"
+	list4 := "1.0.dwd0|1.0wvwv.1|1.0.3-beta|1.0.5-alpha|v1.0.5-beta"
 
 	assert.Equal(t, "1.0.5", getGreatestSemverFromList(list1))
 	assert.Equal(t, "v1.0.5-alpha", getGreatestSemverFromList(list2))
 	assert.Equal(t, "v1.0.5-beta", getGreatestSemverFromList(list3))
+	assert.Equal(t, "v1.0.5-beta", getGreatestSemverFromList(list4))
 
 }

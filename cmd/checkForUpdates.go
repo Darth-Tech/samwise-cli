@@ -24,6 +24,7 @@ var Path string
 var Verbose bool
 var OutputFormat string
 var OutputFilename string
+var LatestVersion bool
 var Depth int
 
 // checkForUpdatesCmd represents the checkForUpdates command
@@ -46,7 +47,7 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 	`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Debug("creating a report..."+Path, "verbose", Verbose)
+		slog.Debug("creating a report..."+Path, "verbose", Verbose, "Latest Version", LatestVersion)
 		_, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
 		slog.Debug("output format: " + OutputFormat)
 		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(Depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
@@ -62,7 +63,7 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 					slog.Debug("...which is skipped")
 					return fs.SkipDir
 				}
-				modules, failureList = checkForModuleSourceUpdates(path)
+				modules, failureList = checkForModuleSourceUpdates(path, LatestVersion)
 				slog.Debug("checkForUpdates :: command :: ", "modules", modules)
 				modulesListTotal = append(modulesListTotal, modules...)
 				failureListTotal = append(failureListTotal, failureList...)
@@ -73,13 +74,14 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 		OutputFormat, err = checkOutputFormat(OutputFormat)
 		Check(err, "checkForUpdates :: command :: output format error", OutputFormat)
 		OutputFilename = checkOutputFilename(OutputFilename)
+		slog.Debug("checkForUpdates :: command :: ", "modulesListTotal", modulesListTotal)
 		generateReport(modulesListTotal, OutputFilename, OutputFormat, rootDir)
 		createJSONReportFile(failureList, rootDir, "failure_report")
 
 	},
 }
 
-func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string]string) {
+func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]string, []map[string]string) {
 	var modules []map[string]string
 	var failureList []map[string]string
 	var listWritten []string
@@ -87,7 +89,6 @@ func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string
 	path = fixTrailingSlashForPath(path)
 	modules = processRepoLinksAndTags(path)
 	slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path: " + path)
-
 
 	slog.Info("Scanning directory " + path + " ...")
 	if len(modules) > 0 {
@@ -107,10 +108,15 @@ func checkForModuleSourceUpdates(path string) ([]map[string]string, []map[string
 				})
 			}
 			if len(tagsList) > 0 {
-				module["updates_available"] = tagsList
+				if latestVersion {
+					module["latest_update"] = getGreatestSemverFromList(tagsList)
+				} else {
+					module["updates_available"] = tagsList
+
+				}
 				listWritten = append(listWritten, module["repo"])
 			}
-			slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path :: ", "repo", module["repo"], "current", module["current_version"], "updates_available", module["updates_available"])
+			slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path :: ", "repo", module["repo"], "current", module["current_version"], "updates_available", module["updates_available"], "latest_update", module["latest_update"])
 
 		}
 	}
@@ -146,6 +152,7 @@ func init() {
 	checkForUpdatesCmd.PersistentFlags().StringArrayP("ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
 	checkForUpdatesCmd.PersistentFlags().StringVarP(&OutputFormat, "output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
 	checkForUpdatesCmd.PersistentFlags().StringVarP(&OutputFilename, "output-filename", "f", "module_report", "Output file name.")
+	checkForUpdatesCmd.Flags().BoolVar(&LatestVersion, "latest-version", false, "Include only latest version in report.")
 
 	err := checkForUpdatesCmd.MarkPersistentFlagRequired("path")
 	if err != nil {
