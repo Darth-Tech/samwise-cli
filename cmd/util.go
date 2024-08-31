@@ -37,6 +37,7 @@ type jsonReport struct {
 	CurrentVersion   string `json:"current_version,omitempty"`
 	UpdatesAvailable string `json:"updates_available,omitempty"`
 	LatestVersion    string `json:"latest_update,omitempty"`
+	FileName         string `json:"file_name"`
 	Error            string `json:"error,omitempty"`
 }
 
@@ -87,7 +88,7 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 
 	writer := csv.NewWriter(report)
 	defer writer.Flush()
-	headers := []string{"repo", "current_version"}
+	headers := []string{"repo", "current_version", "file_name"}
 	if LatestVersion {
 		headers = append(headers, "latest_update")
 	} else {
@@ -98,11 +99,11 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 	for _, row := range data {
 		if len(row["updates_available"]) > 0 || row["latest_update"] != "" {
 			if LatestVersion {
-				err = writer.Write([]string{row["repo"], row["current_version"], row["latest_update"]})
+				err = writer.Write([]string{row["repo"], row["current_version"], row["file_name"], row["latest_update"]})
 			} else {
-				err = writer.Write([]string{row["repo"], row["current_version"], row["updates_available"]})
+				err = writer.Write([]string{row["repo"], row["current_version"], row["file_name"], row["updates_available"]})
 			}
-			Check(err, "util :: CreateCSVReportFile :: unable to write record to file", row["repo"], row["current_version"], row["updates_available"])
+			Check(err, "util :: CreateCSVReportFile :: unable to write record to file", row["repo"], row["current_version"], row["updates_available"], row["file_name"])
 			writer.Flush()
 		}
 	}

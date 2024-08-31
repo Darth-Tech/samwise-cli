@@ -140,7 +140,7 @@ func processRepoLinksAndTags(path string) []map[string]string {
 			repo, tag, submodule := preProcessingSourceString(match)
 			slog.Debug("readFiles :: processRepoLinksAndTags :: ", "repo", repo, "tag", tag, "submodule", submodule)
 			if repo != "" {
-				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag, "submodule": submodule})
+				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag, "submodule": submodule, "file_name": fullPath})
 			}
 
 			if CheckNonPanic(err, "readFiles :: processRepoLinksAndTags :: unable to close file", path, fullPath) {
