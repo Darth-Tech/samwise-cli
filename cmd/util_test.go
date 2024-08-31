@@ -73,8 +73,8 @@ func TestCheckOutputFilename(t *testing.T) {
 }
 func TestGenerateReport(t *testing.T) {
 	data := []map[string]string{
-		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
-		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "file_name": "main.tf"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3", "file_name": "test/main.tf"},
 	}
 	generateReport(data, "module_dependency_report", "csv", ".")
 	resultsCSV := readCsvFile("." + "/module_dependency_report.csv")
@@ -91,8 +91,8 @@ func TestGenerateReport(t *testing.T) {
 
 func TestGenerateFailureReport(t *testing.T) {
 	data := []map[string]string{
-		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "error": "random error"},
-		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "file_name": "main.tf", "error": "random error"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3", "file_name": "main.tf"},
 	}
 	createJSONReportFile(data, ".", "failure_report")
 	results := readJSONFile("./failure_report.json")
@@ -100,29 +100,30 @@ func TestGenerateFailureReport(t *testing.T) {
 	assert.Equal(t, results.Report[0].RepoLink, data[0]["repo"], "repo_link key is not matching")
 	assert.Equal(t, results.Report[0].CurrentVersion, data[0]["current_version"], "current_version key is not matching")
 	assert.Equal(t, results.Report[0].UpdatesAvailable, data[0]["updates_available"], "updates_available key is not matching")
+	assert.Equal(t, results.Report[0].FileName, data[0]["file_name"], "file_name is not matching")
 	assert.Equal(t, results.Report[0].Error, data[0]["error"], "error key is not matching")
-
 	assert.Equal(t, results.Report[1].Error, data[1]["error"], "error key is not matching")
 
 }
 func TestHappyCreateCSVReportFile(t *testing.T) {
 	data := []map[string]string{
-		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
-		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "file_name": "main.tf"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3", "file_name": "main.tf"},
 	}
 	createCSVReportFile(data, ".", "module_report")
 	results := readCsvFile("." + "/module_report.csv")
 	assert.Equal(t, len(results), 3)
 	assert.Equal(t, data[0]["repo"], results[1][0], "repo link mismatch")
 	assert.Equal(t, data[0]["current_version"], results[1][1], "current_version mismatch")
-	assert.Equal(t, data[0]["updates_available"], results[1][2], "updates_available mismatch")
+	assert.Equal(t, data[0]["updates_available"], results[1][3], "updates_available mismatch")
+	assert.Equal(t, data[0]["file_name"], results[1][2], "file_name mismatch")
 
 }
 
 func TestHappyCreateCSVReportFileLatestVersion(t *testing.T) {
 	data := []map[string]string{
-		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "latest_version": "2.7.8"},
-		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3", "latest_version": "3.2.3"},
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "latest_version": "2.7.8", "file_name": "main.tf"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3", "latest_version": "3.2.3", "file_name": "test/main.tf"},
 	}
 	// Set cobra flag for testing
 	createCSVReportFile(data, ".", "module_report")
@@ -130,7 +131,8 @@ func TestHappyCreateCSVReportFileLatestVersion(t *testing.T) {
 	assert.Equal(t, len(results), 3)
 	assert.Equal(t, data[0]["repo"], results[1][0], "repo link mismatch")
 	assert.Equal(t, data[0]["current_version"], results[1][1], "current_version mismatch")
-	assert.Equal(t, data[0]["updates_available"], results[1][2], "latest_version mismatch")
+	assert.Equal(t, data[0]["updates_available"], results[1][3], "latest_version mismatch")
+	assert.Equal(t, data[0]["file_name"], results[1][2], "file_name mismatch")
 
 }
 
@@ -170,8 +172,8 @@ func TestCheckNonPanic(t *testing.T) {
 
 func TestHappyCreateJSONReportFileNoData(t *testing.T) {
 	data := []map[string]string{
-		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8"},
-		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3"},
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "file_name": "main.tf"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3", "file_name": "test/main.tf"},
 	}
 	createJSONReportFile(data, ".", "module_dependency")
 	results := readJSONFile("." + "/module_dependency.json")
@@ -179,6 +181,7 @@ func TestHappyCreateJSONReportFileNoData(t *testing.T) {
 	assert.Equal(t, results.Report[0].RepoLink, data[0]["repo"], "repo_link key is not matching")
 	assert.Equal(t, results.Report[0].CurrentVersion, data[0]["current_version"], "current_version key is not matching")
 	assert.Equal(t, results.Report[0].UpdatesAvailable, data[0]["updates_available"], "updates_available key is not matching")
+	assert.Equal(t, results.Report[0].FileName, data[0]["file_name"], "file_name key is not matching")
 
 }
 
