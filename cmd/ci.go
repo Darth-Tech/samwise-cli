@@ -6,11 +6,11 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -31,10 +31,6 @@ var ciCmd = &cobra.Command{
 Not all those who don't update dependencies are lost.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		slog.Debug("Ci stuff... in "+Path, "args", len(args))
-		if len(args) == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
 		_, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
 		slog.Debug("output format: " + OutputFormat)
 		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(Depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
@@ -47,13 +43,13 @@ Not all those who don't update dependencies are lost.`,
 		var failureList []map[string]string
 		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
 			Check(err, "ci :: command :: ", path)
-			depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
-			if d.IsDir() && !slices.Contains(directoriesToIgnore, d.Name()) {
-				slog.Debug("ci :: command :: in directory " + path)
-				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+Depth {
-					slog.Debug("...which is skipped")
-					return fs.SkipDir
-				}
+
+			Check(err, "checkForUpdates :: command :: ", path)
+			isAllowedDir, dirError := directorySearch(rootDir, path, d)
+			if errors.Is(dirError, fs.SkipDir) {
+				return dirError
+			}
+			if isAllowedDir {
 				err := tf.FormatWrite(context.TODO())
 				Check(err, "tf fmt failed")
 				filesUpdated := createModuleVersionUpdates(path)
@@ -62,6 +58,7 @@ Not all those who don't update dependencies are lost.`,
 				modulesListTotal = append(modulesListTotal, modules...)
 				failureListTotal = append(failureListTotal, failureList...)
 			}
+
 			return nil
 		})
 		Check(err, "ci :: command :: unable to walk the directories")

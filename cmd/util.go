@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -282,7 +283,9 @@ func writeCommit(repoPath string) error {
 	if CheckNonPanic(err, "util :: writeCommit :: unable to open repo") {
 		return err
 	}
-	branch := "upgrade/tf-modules-" + time.DateOnly
+	currentTime := time.Now()
+	y, m, d := currentTime.Date()
+	branch := "upgrade/tf-modules-" + fmt.Sprintf("%d-%d-%d", y, m, d)
 	//err = repo.CreateBranch(&config.Branch{
 	//	Name: "upgrade/tf-modules-" + time.DateOnly,
 	//})
