@@ -31,7 +31,7 @@ var DirectoriesToIgnore []string
 
 // checkForUpdatesCmd represents the checkForUpdates command
 var checkForUpdatesCmd = &cobra.Command{
-	Use:   "checkForUpdates --path=[Directory with module usage]",
+	Use:   "checkForUpdates --path=[Target folder to check module versions]",
 	Short: "search for updates for terraform modules using in your code and generate a report",
 	Long: `
 

@@ -3,6 +3,7 @@ builds:
       goos:
           - darwin
           - linux
+          - windows
       goarch:
           - amd64
           - arm64
@@ -21,12 +22,13 @@ brews:
     -
         name: samwise-cli
         homepage: "https://github.com/Darth-Tech/samwise-cli"
+        description: "A CLI application to accompany on your terraform module journey and sharing your burden of module dependency updates, just as one brave Hobbit helped Frodo carry his :)"
         repository:
             owner: Darth-Tech
             name: homebrew-tap
         commit_author:
             name: Agastya Dev
-            email: thundersparkf
+            email: devagastya0@gmail.com
 
 checksum:
     name_template: 'checksums.txt'
