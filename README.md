@@ -47,7 +47,13 @@ j J         /-;-A'-'|'--'-j\
 As your repositories grow and you reference your modules in other repositories, you would reasonably version your modules to ensure that upstream changes in the source doesn't break your infrastructure. However, it is difficult to keep track of all the new releases for the modules being used and even harder to do it regularly. Unaddressed, this builds overtime as tech debt as one day you discover that a core module is now 3 major versions ahead.
 
 ## Solution
-`samwise` Searches your repository for usages of modules and generates a report of the modules that have updates available along with all the versions that are more advanced than the version used currently.
+`samwise-cli` Searches your repository for usages of modules and generates a report of the modules that have updates available along with all the versions that are more advanced than the version used currently.
+
+## Features:
+```checkForUpdates```: This generates a report(CSV/JSON) that includes the link of module used, current version of the module, file where it is used, updates available/latest version.
+
+```checkForUpdates ci```(experimental): Updates the module versions in the file and commits the files. Working on pushing the updates and generating the PR. 
+
 ## Install instructions
 ### Homebrew
 ```
@@ -68,10 +74,23 @@ chmod +x samwise-cli
 ```
 This can then be moved to any of the directories in the PATH variable so that it can be used easily or it can be used in the same directory itself.
 ## Usage
+Before starting to use the CLI, ensure the following configuration is setup
 
-Available Commands:
+**.samwise.yaml format:**
+```
+git_key:
+git_username:
+git_ssh_key_path:
+```
+or as **environment variables:**
+```
+SAMWISE_CLI_GIT_KEY
+SAMWISE_CLI_GIT_USERNAME
+SAMWISE_CLI_GIT_SSH_KEY_PATH
+
 ```
 Available Commands:
+```
   checkForUpdates search for updates for terraform modules using in your code and generate a report
   completion      Generate the autocompletion script for the specified shell
   help            Help about any command
