@@ -162,7 +162,7 @@ func init() {
 	//checkForUpdatesCmd.Flags().Bool("allow-failure", true, "Set this flag for usage in CI systems. If true, does NOT exit code 1 when modules are outdated.")
 	rootCmd.AddCommand(checkForUpdatesCmd)
 
-	checkForUpdatesCmd.PersistentFlags().IntVarP(&Depth, "depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction.")
+	checkForUpdatesCmd.PersistentFlags().IntVarP(&Depth, "depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction. Default 0, which only reads the projectory.")
 	checkForUpdatesCmd.PersistentFlags().StringVar(&Path, "path", "p", "The path for directory containing terraform code to extract modules from.")
 	checkForUpdatesCmd.PersistentFlags().String("git-repo", "g", "Git Repository to check module dependencies on.")
 	checkForUpdatesCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "The path for directory containing terraform code to extract modules from.")
