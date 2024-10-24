@@ -13,9 +13,10 @@ A CLI application to accompany on your terraform module journey and sharing your
 ### Options
 
 ```
-      --config string   config file (default is $HOME/.samwise.yaml)
-  -h, --help            help for samwise
-  -t, --toggle          Help message for toggle
+      --config string      config file (default is $HOME/.samwise.yaml)
+  -h, --help               help for samwise
+  -t, --toggle             Help message for toggle
+  -v, --verbosity string   Log level (debug, info, warn, error, fatal, panic (default "warning")
 ```
 
 ### SEE ALSO
