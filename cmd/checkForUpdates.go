@@ -22,7 +22,6 @@ import (
 var modulesListTotal []map[string]string
 var failureListTotal []map[string]string
 var Path string
-var Verbose bool
 var OutputFormat string
 var OutputFilename string
 var LatestVersion bool
@@ -49,7 +48,7 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 	`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Debug().Msgf("creating a report: verbose %s, Latest Version: %s", Verbose, LatestVersion)
+		log.Debug().Msgf("creating a report: verbose %s, Latest Version: %t", v, LatestVersion)
 		log.Debug().Msg("output format: " + OutputFormat)
 		log.Debug().Msgf("Params: Depth=%s, rootDir=%s, Path=%s", strconv.Itoa(Depth), Path, strings.Join(DirectoriesToIgnore, " "))
 		rootDir := fixTrailingSlashForPath(Path)

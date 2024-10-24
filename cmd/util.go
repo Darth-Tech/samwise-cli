@@ -376,13 +376,13 @@ func setupTerraform(workingDir string) *tfexec.Terraform {
 
 	execPath, err := installer.Install(context.Background())
 	if err != nil {
-		log.Error().Msgf("error installing Terraform: ", "err", err)
+		log.Error().Msgf("error installing Terraform: %s", err.Error())
 		return nil
 	}
 
 	tf, err := tfexec.NewTerraform(workingDir, execPath)
 	if err != nil {
-		log.Error().Msgf("error running NewTerraform: ", "err", err)
+		log.Error().Msgf("error running NewTerraform: %s", err.Error())
 		return nil
 	}
 	return tf
