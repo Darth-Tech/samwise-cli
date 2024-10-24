@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"errors"
-	"log/slog"
+	"github.com/sirupsen/logrus"
 	"os"
 	"strings"
 
@@ -19,16 +19,16 @@ import (
 
 func gitAuthGenerator(url string) transport.AuthMethod {
 	if !strings.Contains(url, "@") {
-		slog.Debug("using basic https auth")
+		logrus.Debug("using basic https auth")
 		return &http.BasicAuth{
 			Username: viper.GetString("git_user"),
 			Password: viper.GetString("git_key"),
 		}
 	}
-	slog.Debug("using ssh auth")
+	logrus.Debug("using ssh auth")
 	username := strings.Split(url, "@")[0]
 	sshPath := viper.GetString("git_ssh_key_path")
-	slog.Debug("readGitFiles :: gitAuthGenerator :: " + sshPath)
+	logrus.Debug("readGitFiles :: gitAuthGenerator :: " + sshPath)
 	sshKey, err := os.ReadFile(sshPath)
 	Check(err, "filename "+sshPath)
 	signer, err := ssh.ParsePrivateKey(sshKey)
@@ -40,14 +40,14 @@ func gitAuthGenerator(url string) transport.AuthMethod {
 }
 
 func parseGitUrl(source string) string {
-	slog.Debug("readGitFiles :: parseGitUrl :: source " + source)
+	logrus.Debug("readGitFiles :: parseGitUrl :: source " + source)
 	if strings.Contains(source, "@") || strings.Contains(source, "ssh://") {
 		source = strings.Replace(source, "ssh://", "", 1)
 		return source
 	}
 	source = strings.Replace(source, "git::", "", 1)
 	endpointUrl, err := transport.NewEndpoint(source)
-	slog.Debug("readGitFiles :: parseGitUrl :: endpoint result", "host", endpointUrl.Host, "path", endpointUrl.Path, "protocol", endpointUrl.Protocol)
+	logrus.Debug("readGitFiles :: parseGitUrl :: endpoint result", "host", endpointUrl.Host, "path", endpointUrl.Path, "protocol", endpointUrl.Protocol)
 	if CheckNonPanic(err, "unable to parse git url") {
 		return ""
 	}
@@ -59,20 +59,20 @@ func parseGitUrl(source string) string {
 }
 func cloneRepo(url string) (*git.Repository, error) {
 	url = parseGitUrl(url)
-	slog.Debug("readGitFiles :: cloneRepo :: url :: " + url)
+	logrus.Debug("readGitFiles :: cloneRepo :: url :: " + url)
 	authMethod := gitAuthGenerator(url)
 	//authMethod, err := ssh.DefaultAuthBuilder("git")
 	if url == "" {
-		slog.Debug("readGitFiles :: cloneRepo :: url is empty from parseGitUrl")
+		logrus.Debug("readGitFiles :: cloneRepo :: url is empty from parseGitUrl")
 		return nil, errors.New(errorHandlers.CloningErrorPrefix + " unable to clone " + url)
 	}
-	slog.Debug("readGitFiles :: cloneRepo :: auth method", "authMethod", authMethod.String())
+	logrus.Debug("readGitFiles :: cloneRepo :: auth method", "authMethod", authMethod.String())
 	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL:  url,
 		Auth: authMethod,
 	})
 	if err != nil {
-		slog.Debug("readGitFiles :: cloneRepo :: url :: " + url)
+		logrus.Debug("readGitFiles :: cloneRepo :: url :: " + url)
 		return nil, errors.New(errorHandlers.CloningErrorPrefix + err.Error())
 	}
 	return r, nil
@@ -82,7 +82,7 @@ func getTags(r *git.Repository, currentVersionTag string) string {
 	tags, err := r.Tags()
 	var tagsList []string
 	if err != nil {
-		slog.Error("readGitFiles :: getTags :: unable to get tags :: " + err.Error())
+		logrus.Error("readGitFiles :: getTags :: unable to get tags :: " + err.Error())
 		return ""
 	}
 	//TODO: CheckNonPanic here

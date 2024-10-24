@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log/slog"
+	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 	"testing"
@@ -67,7 +67,7 @@ func TestExtractRefAndPathRepo(t *testing.T) {
 	gitParamExampleRepo, _, _ := extractRefAndPath("https://example.com/vpc.git?depth=1&ref=1.2.0")
 	assert.Equal(t, "https://example.com/vpc.git", gitParamExampleRepo, "readFiles :: extractRefAndPath :: repo :: "+gitParamExampleRepo)
 
-	slog.Debug("repos and refs", gitHubExampleRepo, bitbucketExampleRepo, genericGitExampleRepo, gitParamExampleRepo)
+	logrus.Debug("repos and refs", gitHubExampleRepo, bitbucketExampleRepo, genericGitExampleRepo, gitParamExampleRepo)
 }
 func TestExtractRefAndPathTag(t *testing.T) {
 	_, gitHubExampleTag, _ := extractRefAndPath("github.com/hashicorp/example?ref=1.0.0")
@@ -126,7 +126,7 @@ func TestExtractModuleSource(t *testing.T) {
 	gitParamExampleSource := extractModuleSource("https://example.com/vpc.git?depth=1&ref=v1.2.0")
 	assert.Equal(t, "https://example.com/vpc.git?depth=1&ref=v1.2.0", gitParamExampleSource, "readFiles :: extractRefAndPath :: repo :: "+gitParamExampleSource)
 
-	slog.Debug("repos and refs", gitHubExampleSource, bitbucketExampleSource, genericGitExampleSource, gitParamExampleSource)
+	logrus.Debug("repos and refs", gitHubExampleSource, bitbucketExampleSource, genericGitExampleSource, gitParamExampleSource)
 }
 
 func TestExtractSubmoduleFromSource(t *testing.T) {

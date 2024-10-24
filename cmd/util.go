@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"slices"
@@ -44,15 +44,15 @@ type jsonReport struct {
 func Check(err error, message string, args ...any) {
 	if err != nil {
 
-		slog.Error(message, slog.Any("errorArgs", args))
+		logrus.Error(message, "errorArgs", args)
 		panic(err)
 	}
 }
 
 func CheckNonPanic(err error, message string, args ...any) bool {
 	if err != nil {
-		slog.Error(message, slog.Any("errorArgs", args))
-		slog.Error(err.Error())
+		logrus.Error(message, "errorArgs", args)
+		logrus.Error(err.Error())
 		return true
 	}
 	return false
@@ -75,7 +75,7 @@ func generateReport(data []map[string]string, outputFilename string, outputForma
 }
 
 func createCSVReportFile(data []map[string]string, path string, filename string) {
-	slog.Debug("creating " + path + "/" + filename + ".csv file")
+	logrus.Debug("creating " + path + "/" + filename + ".csv file")
 	reportFilePath := path + "/" + filename + ".csv"
 	report, err := os.Create(reportFilePath)
 	Check(err, "util :: createCSVReportFile :: unable to create file ", reportFilePath)
@@ -107,7 +107,7 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 			writer.Flush()
 		}
 	}
-	slog.Debug("created " + reportFilePath)
+	logrus.Debug("created " + reportFilePath)
 
 }
 
@@ -142,7 +142,7 @@ func createJSONReportFile(data []map[string]string, path string, filename string
 	Check(err, "util :: createJSONReportFile :: unable to marshal modules data")
 	var reportJsonObject []jsonReport
 	err = json.Unmarshal(reportString, &reportJsonObject)
-	slog.Debug("util :: createJSONReportFile :: reportString :: " + string(reportString))
+	logrus.Debug("util :: createJSONReportFile :: reportString :: " + string(reportString))
 	Check(err, "util :: createJSONReportFile :: unable unmarshal into output format")
 	var nonEmptyRecords []jsonReport
 	for _, value := range reportJsonObject {
@@ -173,7 +173,7 @@ func readTfFiles(path string) []string {
 				moduleSource := string(sourceString)
 				moduleSource = strings.ReplaceAll(moduleSource, "\"", "")
 				moduleSource = strings.ReplaceAll(moduleSource, " ", "")
-				slog.Debug("util :: readTfFiles :: sourceString :: ", "sourceString", moduleSource)
+				logrus.Debug("util :: readTfFiles :: sourceString :: ", "sourceString", moduleSource)
 				sources = append(sources, moduleSource)
 			}
 		}
@@ -182,11 +182,11 @@ func readTfFiles(path string) []string {
 }
 
 func updateTfFiles(path string, fileName string) []string {
-	slog.Debug("util :: updateTfFiles :: starting :: " + time.DateOnly)
+	logrus.Debug("util :: updateTfFiles :: starting :: " + time.DateOnly)
 	fullPath := path + "/" + fileName
 	var sources = make([]string, 0)
 
-	slog.Debug("util :: updateTfFiles :: reading file", "filename", fullPath)
+	logrus.Debug("util :: updateTfFiles :: reading file", "filename", fullPath)
 	content, _ := os.ReadFile(fullPath)
 	file, _ := hclwrite.ParseConfig(content, fullPath, hcl.Pos{Line: 1, Column: 1})
 	if file == nil {
@@ -195,52 +195,52 @@ func updateTfFiles(path string, fileName string) []string {
 	for _, block := range file.Body().Blocks() {
 		labels := block.Labels()
 		if block.Type() == "module" && len(labels) > 0 {
-			slog.Debug("util :: updateTfFiles :: module detected")
+			logrus.Debug("util :: updateTfFiles :: module detected")
 			if block.Body().GetAttribute("source") != nil {
-				slog.Debug("util :: updateTfFiles :: module source detected")
+				logrus.Debug("util :: updateTfFiles :: module source detected")
 				sourceString := block.Body().GetAttribute("source").Expr().BuildTokens(nil).Bytes()
 				moduleSource := string(sourceString)
 				moduleSource = cleanUpSourceString(moduleSource)
-				slog.Debug("util :: updateTfFiles :: sourceString :: ", "sourceString", moduleSource)
+				logrus.Debug("util :: updateTfFiles :: sourceString :: ", "sourceString", moduleSource)
 				moduleSource = extractModuleSource(moduleSource)
-				slog.Debug("util :: updateTfFiles :: moduleSource :: ", "moduleSource", moduleSource)
+				logrus.Debug("util :: updateTfFiles :: moduleSource :: ", "moduleSource", moduleSource)
 				if moduleSource != "" {
 					sourceUrl, refTag, _ := extractRefAndPath(moduleSource)
 					if refTag == "" {
 						continue
 					}
-					slog.Debug("util :: updateTfFiles :: module data", "sourceUrl", sourceUrl, "tag", refTag)
+					logrus.Debug("util :: updateTfFiles :: module data", "sourceUrl", sourceUrl, "tag", refTag)
 					_, tagsList, _ := processGitRepo(sourceUrl, refTag)
 					largestTag := getGreatestSemverFromList(tagsList)
 					if largestTag == "" {
 						continue
 					}
 					sources = append(sources, fullPath)
-					slog.Debug("util :: updateTfFiles :: file to be updated :: ", "filename", fileName)
-					slog.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", string(moduleSource), "tag", largestTag, "tagList", tagsList)
+					logrus.Debug("util :: updateTfFiles :: file to be updated :: ", "filename", fileName)
+					logrus.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", string(moduleSource), "tag", largestTag, "tagList", tagsList)
 					currentSourceString := strings.Replace(string(moduleSource), refTag, largestTag, 1)
-					slog.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", moduleSource, "tag", largestTag, "tagList", tagsList)
+					logrus.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", moduleSource, "tag", largestTag, "tagList", tagsList)
 					writeHclBlockToFile(file, block, fullPath, "source", currentSourceString)
 				}
 			}
 		}
 	}
-	slog.Debug("util :: updateTfFiles :: sources :: ", slog.Any("sources", sources))
+	logrus.Debug("util :: updateTfFiles :: sources :: ", "sources", sources)
 
 	return sources
 }
 
 func writeHclBlockToFile(file *hclwrite.File, block *hclwrite.Block, path string, attr string, value any) {
 	writeAttr := block.Body().SetAttributeValue(attr, cty.StringVal(value.(string)))
-	slog.Debug("written to file", "writeAttr", string(writeAttr.Expr().BuildTokens(nil).Bytes()))
+	logrus.Debug("written to file", "writeAttr", string(writeAttr.Expr().BuildTokens(nil).Bytes()))
 	writeFile, err := os.OpenFile(path, os.O_WRONLY, os.ModePerm)
 	Check(err, "util :: updateTfFiles :: open file error")
 	_, err = writeFile.Write(file.Bytes())
 	Check(err, "util :: updateTfFiles :: write to file error")
-	slog.Debug("util :: updateTfFiles :: path of output", "output", writeFile.Name(), "file_bytes", string(file.Bytes()))
+	logrus.Debug("util :: updateTfFiles :: path of output", "output", writeFile.Name(), "file_bytes", string(file.Bytes()))
 	err = writeFile.Close()
 	CheckNonPanic(err, "util :: updateTfFiles :: unable to close file")
-	slog.Debug("util :: updateTfFiles :: file closed")
+	logrus.Debug("util :: updateTfFiles :: file closed")
 
 }
 
@@ -275,7 +275,7 @@ func getSemverGreaterThanCurrent(currentVersion string, versionToCheck string) b
 }
 
 func writeCommit(repoPath string) error {
-	slog.Debug("util :: writeCommit :: opening repo")
+	logrus.Debug("util :: writeCommit :: opening repo")
 
 	repo, err := git.PlainOpen(repoPath)
 	CheckNonPanic(err, "util :: writeCommit :: failed to open repo")
@@ -297,7 +297,7 @@ func writeCommit(repoPath string) error {
 
 	w, err := repo.Worktree()
 	Check(err, "util :: writeCommit :: worktree not fetched")
-	slog.Debug("util :: writeCommit :: branch :: ", "branch", branch)
+	logrus.Debug("util :: writeCommit :: branch :: ", "branch", branch)
 
 	branchRefName := plumbing.NewBranchReferenceName(branch)
 	branchCoOpts := git.CheckoutOptions{
@@ -376,13 +376,13 @@ func setupTerraform(workingDir string) *tfexec.Terraform {
 
 	execPath, err := installer.Install(context.Background())
 	if err != nil {
-		slog.Error("error installing Terraform: ", "err", err)
+		logrus.Error("error installing Terraform: ", "err", err)
 		return nil
 	}
 
 	tf, err := tfexec.NewTerraform(workingDir, execPath)
 	if err != nil {
-		slog.Error("error running NewTerraform: ", "err", err)
+		logrus.Error("error running NewTerraform: ", "err", err)
 		return nil
 	}
 	return tf

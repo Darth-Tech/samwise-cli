@@ -17,7 +17,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"log/slog"
+	"github.com/sirupsen/logrus"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra/doc"
@@ -27,6 +28,7 @@ import (
 )
 
 var cfgFile string
+var v string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -37,6 +39,11 @@ var rootCmd = &cobra.Command{
 		and provide a report to plan updates and migrations.
 
 	The Samwise Gamgee of module management to the Frodo of your application.`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if err := setUpLogs(os.Stdout, v); err != nil {
+			panic(err)
+		}
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -60,6 +67,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.samwise.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&v, "verbosity", "v", logrus.WarnLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -86,6 +94,16 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		slog.Debug("Using config file:" + viper.ConfigFileUsed())
+		logrus.Debug("Using config file:" + viper.ConfigFileUsed())
 	}
+}
+
+func setUpLogs(out io.Writer, level string) error {
+	logrus.SetOutput(out)
+	lvl, err := logrus.ParseLevel(level)
+	if err != nil {
+		return err
+	}
+	logrus.SetLevel(lvl)
+	return nil
 }

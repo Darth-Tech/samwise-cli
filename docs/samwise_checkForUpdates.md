@@ -26,21 +26,21 @@ samwise checkForUpdates --path=[Target folder to check module versions] [flags]
 ### Options
 
 ```
-  -d, --depth int                Folder depth to search for modules in. Give -1 for a full directory extraction.
+  -d, --depth int                Folder depth to search for modules in. Give -1 for a full directory extraction. Default 0, which only reads the projectory.
       --git-repo string          Git Repository to check module dependencies on. (default "g")
   -h, --help                     help for checkForUpdates
-  -i, --ignore stringArray       Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
+  -i, --ignore strings           Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
       --latest-version           Include only latest version in report.
   -o, --output string            Output format. Supports "csv" and "json". Default value is csv. (default "csv")
   -f, --output-filename string   Output file name. (default "module_report")
       --path string              The path for directory containing terraform code to extract modules from. (default "p")
-  -v, --verbose                  The path for directory containing terraform code to extract modules from.
 ```
 
 ### Options inherited from parent commands
 
 ```
-      --config string   config file (default is $HOME/.samwise.yaml)
+      --config string      config file (default is $HOME/.samwise.yaml)
+  -v, --verbosity string   Log level (debug, info, warn, error, fatal, panic (default "warning")
 ```
 
 ### SEE ALSO

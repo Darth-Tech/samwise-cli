@@ -7,8 +7,8 @@ package cmd
 import (
 	"context"
 	"errors"
+	"github.com/sirupsen/logrus"
 	"io/fs"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,16 +24,16 @@ var ciCmd = &cobra.Command{
 	Use:   "ci",
 	Short: "For CI integrations[experimental]",
 	Long: `
-	
-	Includes features for better CI integrations such as failure when updates available 
+
+	Includes features for better CI integrations such as failure when updates available
 	for pipelines, allowing users to automatically create PRs when updates are present(custom thresholds) and so on.
 
 Not all those who don't update dependencies are lost.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Debug("Ci stuff... in "+Path, "args", len(args))
+		logrus.Debug("Ci stuff... in "+Path, "args", len(args))
 		_, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
-		slog.Debug("output format: " + OutputFormat)
-		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(Depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(directoriesToIgnore, " ")))
+		logrus.Debug("output format: " + OutputFormat)
+		logrus.Debug("Params: ", "depth", strconv.Itoa(Depth), "rootDir", Path, "directoriesToIgnore", strings.Join(directoriesToIgnore, " "))
 		rootDir := fixTrailingSlashForPath(Path)
 		tf := setupTerraform(rootDir)
 		if tf == nil {
@@ -62,7 +62,7 @@ Not all those who don't update dependencies are lost.`,
 			return nil
 		})
 		Check(err, "ci :: command :: unable to walk the directories")
-		slog.Debug("ci :: command :: filesUpdatedTotal", "filesUpdatedTotal", filesUpdatedTotal)
+		logrus.Debug("ci :: command :: filesUpdatedTotal", "filesUpdatedTotal", filesUpdatedTotal)
 		writeCommit(rootDir)
 
 	},
@@ -76,7 +76,7 @@ func createModuleVersionUpdates(path string) []string {
 		filesEdited := updateTfFiles(path, file.Name())
 		filesUpdated = append(filesUpdated, filesEdited...)
 	}
-	slog.Debug("ci :: command :: files", "files", filesUpdated)
+	logrus.Debug("ci :: command :: files", "files", filesUpdated)
 	return filesUpdated
 }
 
