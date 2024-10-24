@@ -6,8 +6,8 @@ package cmd
 
 import (
 	"errors"
+	"github.com/sirupsen/logrus"
 	"io/fs"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -49,9 +49,9 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 	`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Debug("creating a report..."+Path, "verbose", Verbose, "Latest Version", LatestVersion)
-		slog.Debug("output format: " + OutputFormat)
-		slog.Debug("Params: ", slog.String("depth", strconv.Itoa(Depth)), slog.String("rootDir", Path), slog.String("directoriesToIgnore", strings.Join(DirectoriesToIgnore, " ")))
+		logrus.Debug("creating a report..."+Path, "verbose", Verbose, "Latest Version", LatestVersion)
+		logrus.Debug("output format: " + OutputFormat)
+		logrus.Debug("Params: ", Depth, "depth", strconv.Itoa(Depth), "rootDir", Path, "directoriesToIgnore", strings.Join(DirectoriesToIgnore, " "))
 		rootDir := fixTrailingSlashForPath(Path)
 		var failureList []map[string]string
 		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
@@ -62,7 +62,7 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 			}
 			if isAllowedDir {
 				modules, failureList := checkForModuleSourceUpdates(path, LatestVersion)
-				slog.Debug("checkForUpdates :: command :: ", "modules", modules)
+				logrus.Debug("checkForUpdates :: command :: ", "modules", modules)
 				modulesListTotal = append(modulesListTotal, modules...)
 				failureListTotal = append(failureListTotal, failureList...)
 			}
@@ -72,7 +72,7 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 		OutputFormat, err = checkOutputFormat(OutputFormat)
 		Check(err, "checkForUpdates :: command :: output format error", OutputFormat)
 		OutputFilename = checkOutputFilename(OutputFilename)
-		slog.Debug("checkForUpdates :: command :: ", "modulesListTotal", modulesListTotal)
+		logrus.Debug("checkForUpdates :: command :: ", "modulesListTotal", modulesListTotal)
 		generateReport(modulesListTotal, OutputFilename, OutputFormat, rootDir)
 		createJSONReportFile(failureList, rootDir, "failure_report")
 
@@ -83,10 +83,10 @@ func directorySearch(rootDir string, path string, d fs.DirEntry) (bool, error) {
 	depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
 	if d.IsDir() {
 		if !slices.Contains(DirectoriesToIgnore, d.Name()) {
-			slog.Info("checkForUpdates :: command :: in directory " + path)
+			logrus.Info("checkForUpdates :: command :: in directory " + path)
 			if Depth != -1 {
 				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+Depth {
-					slog.Info("...which is skipped")
+					logrus.Info("...which is skipped")
 					return true, fs.SkipDir
 				}
 			}
@@ -104,9 +104,9 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 	var bar *progressbar.ProgressBar
 	path = fixTrailingSlashForPath(path)
 	modules = processRepoLinksAndTags(path)
-	slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path: " + path)
+	logrus.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path: " + path)
 
-	slog.Info("Scanning directory " + path + " ...")
+	logrus.Info("Scanning directory " + path + " ...")
 	if len(modules) > 0 {
 		bar = progressbar.Default(int64(len(modules)))
 	}
@@ -133,7 +133,7 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 				}
 				listWritten = append(listWritten, moduleUsed)
 			}
-			slog.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path :: ", "repo", module["repo"], "current", module["current_version"], "updates_available", module["updates_available"], "latest_update", module["latest_update"])
+			logrus.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path :: ", "repo", module["repo"], "current", module["current_version"], "updates_available", module["updates_available"], "latest_update", module["latest_update"])
 
 		}
 	}
@@ -165,8 +165,7 @@ func init() {
 	checkForUpdatesCmd.PersistentFlags().IntVarP(&Depth, "depth", "d", 0, "Folder depth to search for modules in. Give -1 for a full directory extraction. Default 0, which only reads the projectory.")
 	checkForUpdatesCmd.PersistentFlags().StringVar(&Path, "path", "p", "The path for directory containing terraform code to extract modules from.")
 	checkForUpdatesCmd.PersistentFlags().String("git-repo", "g", "Git Repository to check module dependencies on.")
-	checkForUpdatesCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "The path for directory containing terraform code to extract modules from.")
-	checkForUpdatesCmd.PersistentFlags().StringArrayVarP(&DirectoriesToIgnore, "ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
+	checkForUpdatesCmd.PersistentFlags().StringSliceVarP(&DirectoriesToIgnore, "ignore", "i", []string{".git", ".idea"}, "Directories to ignore when searching for the One Ring(modules and their sources.")
 	checkForUpdatesCmd.PersistentFlags().StringVarP(&OutputFormat, "output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
 	checkForUpdatesCmd.PersistentFlags().StringVarP(&OutputFilename, "output-filename", "f", "module_report", "Output file name.")
 	checkForUpdatesCmd.Flags().BoolVar(&LatestVersion, "latest-version", false, "Include only latest version in report.")

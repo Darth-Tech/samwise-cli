@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log/slog"
+	"github.com/sirupsen/logrus"
 	"os"
 	"regexp"
 	"strings"
@@ -80,7 +80,7 @@ func extractRefAndPath(sourceUrl string) (string, string, string) {
 	submodulePaths = removeUrlParams.ReplaceAllString(submodulePathsParams, "")
 	baseUrl = removeUrlParams.ReplaceAllString(baseUrl, "")
 	refTag = getTagFromUrl(sourceUrl)
-	slog.Debug("readFiles :: extractRefAndPath :: ", "tag", refTag, "baseUrl", baseUrl, "submodulePaths", submodulePaths)
+	logrus.Debug("readFiles :: extractRefAndPath :: ", "tag", refTag, "baseUrl", baseUrl, "submodulePaths", submodulePaths)
 
 	return baseUrl, refTag, submodulePaths
 }
@@ -111,13 +111,13 @@ func preProcessingSourceString(line string) (string, string, string) {
 
 	repoLink := extractModuleSource(line)
 	//repoLink := sourceLineCheck[1]
-	slog.Debug("readFiles :: preProcessingSourceString :: Git repo link before:: " + repoLink)
+	logrus.Debug("readFiles :: preProcessingSourceString :: Git repo link before:: " + repoLink)
 	var sourceUrl, refTag, submodule string
 	if repoLink != "" {
 
 		sourceUrl, refTag, submodule = extractRefAndPath(repoLink)
 	}
-	slog.Debug("readFiles :: preProcessingSourceString :: Git repo link after: " + sourceUrl)
+	logrus.Debug("readFiles :: preProcessingSourceString :: Git repo link after: " + sourceUrl)
 	return sourceUrl, refTag, submodule
 
 }
@@ -136,9 +136,9 @@ func processRepoLinksAndTags(path string) []map[string]string {
 
 		for _, match := range sourcesInFile {
 			match = cleanUpSourceString(match)
-			slog.Debug("readFiles :: processRepoLinksAndTags :: match :: ", "match", match)
+			logrus.Debug("readFiles :: processRepoLinksAndTags :: match :: ", "match", match)
 			repo, tag, submodule := preProcessingSourceString(match)
-			slog.Debug("readFiles :: processRepoLinksAndTags :: ", "repo", repo, "tag", tag, "submodule", submodule)
+			logrus.Debug("readFiles :: processRepoLinksAndTags :: ", "repo", repo, "tag", tag, "submodule", submodule)
 			if repo != "" {
 				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag, "submodule": submodule, "file_name": fullPath})
 			}
