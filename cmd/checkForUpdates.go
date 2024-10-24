@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"errors"
-	"github.com/sirupsen/logrus"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog/log"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -22,7 +22,6 @@ import (
 var modulesListTotal []map[string]string
 var failureListTotal []map[string]string
 var Path string
-var Verbose bool
 var OutputFormat string
 var OutputFilename string
 var LatestVersion bool
@@ -49,9 +48,9 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 	`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		logrus.Debug("creating a report..."+Path, "verbose", Verbose, "Latest Version", LatestVersion)
-		logrus.Debug("output format: " + OutputFormat)
-		logrus.Debug("Params: ", Depth, "depth", strconv.Itoa(Depth), "rootDir", Path, "directoriesToIgnore", strings.Join(DirectoriesToIgnore, " "))
+		log.Debug().Msgf("creating a report: verbose %s, Latest Version: %t", v, LatestVersion)
+		log.Debug().Msg("output format: " + OutputFormat)
+		log.Debug().Msgf("Params: Depth=%s, rootDir=%s, Path=%s", strconv.Itoa(Depth), Path, strings.Join(DirectoriesToIgnore, " "))
 		rootDir := fixTrailingSlashForPath(Path)
 		var failureList []map[string]string
 		err := filepath.WalkDir(rootDir, func(path string, d fs.DirEntry, err error) error {
@@ -62,7 +61,7 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 			}
 			if isAllowedDir {
 				modules, failureList := checkForModuleSourceUpdates(path, LatestVersion)
-				logrus.Debug("checkForUpdates :: command :: ", "modules", modules)
+				log.Debug().Msgf("checkForUpdates :: command :: modules :: %v", modules)
 				modulesListTotal = append(modulesListTotal, modules...)
 				failureListTotal = append(failureListTotal, failureList...)
 			}
@@ -72,7 +71,7 @@ An update is never late, nor is it early, it arrives precisely when it means to.
 		OutputFormat, err = checkOutputFormat(OutputFormat)
 		Check(err, "checkForUpdates :: command :: output format error", OutputFormat)
 		OutputFilename = checkOutputFilename(OutputFilename)
-		logrus.Debug("checkForUpdates :: command :: ", "modulesListTotal", modulesListTotal)
+		log.Debug().Msgf("checkForUpdates :: command :: modulesListTotal :: %v", modulesListTotal)
 		generateReport(modulesListTotal, OutputFilename, OutputFormat, rootDir)
 		createJSONReportFile(failureList, rootDir, "failure_report")
 
@@ -83,10 +82,10 @@ func directorySearch(rootDir string, path string, d fs.DirEntry) (bool, error) {
 	depthCountInCurrentPath := strings.Count(rootDir, string(os.PathSeparator))
 	if d.IsDir() {
 		if !slices.Contains(DirectoriesToIgnore, d.Name()) {
-			logrus.Info("checkForUpdates :: command :: in directory " + path)
+			log.Info().Msg("checkForUpdates :: command :: in directory " + path)
 			if Depth != -1 {
 				if strings.Count(path, string(os.PathSeparator)) > depthCountInCurrentPath+Depth {
-					logrus.Info("...which is skipped")
+					log.Info().Msg("...which is skipped")
 					return true, fs.SkipDir
 				}
 			}
@@ -104,9 +103,9 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 	var bar *progressbar.ProgressBar
 	path = fixTrailingSlashForPath(path)
 	modules = processRepoLinksAndTags(path)
-	logrus.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path: " + path)
+	log.Debug().Msg("checkForUpdates :: checkForModuleSourceUpdates :: path: " + path)
 
-	logrus.Info("Scanning directory " + path + " ...")
+	log.Info().Msg("Scanning directory " + path + " ...")
 	if len(modules) > 0 {
 		bar = progressbar.Default(int64(len(modules)))
 	}
@@ -133,7 +132,7 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 				}
 				listWritten = append(listWritten, moduleUsed)
 			}
-			logrus.Debug("checkForUpdates :: checkForModuleSourceUpdates :: path :: ", "repo", module["repo"], "current", module["current_version"], "updates_available", module["updates_available"], "latest_update", module["latest_update"])
+			log.Debug().Msgf("checkForUpdates :: checkForModuleSourceUpdates :: path :: repo :: %s :: current :: %s :: updates_available :: %s :: latest_update :: %s", module["repo"], module["current_version"], module["updates_available"], module["latest_update"])
 
 		}
 	}

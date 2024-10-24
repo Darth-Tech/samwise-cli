@@ -18,9 +18,9 @@ package cmd
 
 import (
 	"github.com/sirupsen/logrus"
-	"io"
 	"os"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra/doc"
 
 	"github.com/spf13/cobra"
@@ -40,7 +40,7 @@ var rootCmd = &cobra.Command{
 
 	The Samwise Gamgee of module management to the Frodo of your application.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		if err := setUpLogs(os.Stdout, v); err != nil {
+		if err := setUpLogs(v); err != nil {
 			panic(err)
 		}
 	},
@@ -67,7 +67,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.samwise.yaml)")
-	rootCmd.PersistentFlags().StringVarP(&v, "verbosity", "v", logrus.WarnLevel.String(), "Log level (debug, info, warn, error, fatal, panic")
+	rootCmd.PersistentFlags().StringVarP(&v, "verbosity", "v", zerolog.LevelWarnValue, "Log level (debug, info, warn, error, fatal, panic")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -98,12 +98,13 @@ func initConfig() {
 	}
 }
 
-func setUpLogs(out io.Writer, level string) error {
-	logrus.SetOutput(out)
-	lvl, err := logrus.ParseLevel(level)
+func setUpLogs(level string) error {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	parseLevel, err := zerolog.ParseLevel(level)
 	if err != nil {
 		return err
 	}
-	logrus.SetLevel(lvl)
+	zerolog.SetGlobalLevel(parseLevel)
+
 	return nil
 }

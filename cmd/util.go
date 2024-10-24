@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -44,15 +44,15 @@ type jsonReport struct {
 func Check(err error, message string, args ...any) {
 	if err != nil {
 
-		logrus.Error(message, "errorArgs", args)
+		log.Error().Msgf(message, "errorArgs", args)
 		panic(err)
 	}
 }
 
 func CheckNonPanic(err error, message string, args ...any) bool {
 	if err != nil {
-		logrus.Error(message, "errorArgs", args)
-		logrus.Error(err.Error())
+		log.Error().Msgf(message, "errorArgs", args)
+		log.Error().Msgf(err.Error())
 		return true
 	}
 	return false
@@ -75,7 +75,7 @@ func generateReport(data []map[string]string, outputFilename string, outputForma
 }
 
 func createCSVReportFile(data []map[string]string, path string, filename string) {
-	logrus.Debug("creating " + path + "/" + filename + ".csv file")
+	log.Debug().Msgf("creating " + path + "/" + filename + ".csv file")
 	reportFilePath := path + "/" + filename + ".csv"
 	report, err := os.Create(reportFilePath)
 	Check(err, "util :: createCSVReportFile :: unable to create file ", reportFilePath)
@@ -107,7 +107,7 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 			writer.Flush()
 		}
 	}
-	logrus.Debug("created " + reportFilePath)
+	log.Debug().Msgf("created " + reportFilePath)
 
 }
 
@@ -142,7 +142,7 @@ func createJSONReportFile(data []map[string]string, path string, filename string
 	Check(err, "util :: createJSONReportFile :: unable to marshal modules data")
 	var reportJsonObject []jsonReport
 	err = json.Unmarshal(reportString, &reportJsonObject)
-	logrus.Debug("util :: createJSONReportFile :: reportString :: " + string(reportString))
+	log.Debug().Msgf("util :: createJSONReportFile :: reportString :: " + string(reportString))
 	Check(err, "util :: createJSONReportFile :: unable unmarshal into output format")
 	var nonEmptyRecords []jsonReport
 	for _, value := range reportJsonObject {
@@ -173,7 +173,7 @@ func readTfFiles(path string) []string {
 				moduleSource := string(sourceString)
 				moduleSource = strings.ReplaceAll(moduleSource, "\"", "")
 				moduleSource = strings.ReplaceAll(moduleSource, " ", "")
-				logrus.Debug("util :: readTfFiles :: sourceString :: ", "sourceString", moduleSource)
+				log.Debug().Msgf("util :: readTfFiles :: sourceString :: %s", moduleSource)
 				sources = append(sources, moduleSource)
 			}
 		}
@@ -182,11 +182,11 @@ func readTfFiles(path string) []string {
 }
 
 func updateTfFiles(path string, fileName string) []string {
-	logrus.Debug("util :: updateTfFiles :: starting :: " + time.DateOnly)
+	log.Debug().Msgf("util :: updateTfFiles :: starting :: " + time.DateOnly)
 	fullPath := path + "/" + fileName
 	var sources = make([]string, 0)
 
-	logrus.Debug("util :: updateTfFiles :: reading file", "filename", fullPath)
+	log.Debug().Msgf("util :: updateTfFiles :: reading file path :: %s", fullPath)
 	content, _ := os.ReadFile(fullPath)
 	file, _ := hclwrite.ParseConfig(content, fullPath, hcl.Pos{Line: 1, Column: 1})
 	if file == nil {
@@ -195,52 +195,52 @@ func updateTfFiles(path string, fileName string) []string {
 	for _, block := range file.Body().Blocks() {
 		labels := block.Labels()
 		if block.Type() == "module" && len(labels) > 0 {
-			logrus.Debug("util :: updateTfFiles :: module detected")
+			log.Debug().Msgf("util :: updateTfFiles :: module detected")
 			if block.Body().GetAttribute("source") != nil {
-				logrus.Debug("util :: updateTfFiles :: module source detected")
+				log.Debug().Msgf("util :: updateTfFiles :: module source detected")
 				sourceString := block.Body().GetAttribute("source").Expr().BuildTokens(nil).Bytes()
 				moduleSource := string(sourceString)
 				moduleSource = cleanUpSourceString(moduleSource)
-				logrus.Debug("util :: updateTfFiles :: sourceString :: ", "sourceString", moduleSource)
+				log.Debug().Msgf("util :: updateTfFiles :: sourceString :: %s", moduleSource)
 				moduleSource = extractModuleSource(moduleSource)
-				logrus.Debug("util :: updateTfFiles :: moduleSource :: ", "moduleSource", moduleSource)
+				log.Debug().Msgf("util :: updateTfFiles :: moduleSource :: %s", moduleSource)
 				if moduleSource != "" {
 					sourceUrl, refTag, _ := extractRefAndPath(moduleSource)
 					if refTag == "" {
 						continue
 					}
-					logrus.Debug("util :: updateTfFiles :: module data", "sourceUrl", sourceUrl, "tag", refTag)
+					log.Debug().Msgf("util :: updateTfFiles :: module data :: sourceUrl :: %s :: tag :: %s ", sourceUrl, refTag)
 					_, tagsList, _ := processGitRepo(sourceUrl, refTag)
 					largestTag := getGreatestSemverFromList(tagsList)
 					if largestTag == "" {
 						continue
 					}
 					sources = append(sources, fullPath)
-					logrus.Debug("util :: updateTfFiles :: file to be updated :: ", "filename", fileName)
-					logrus.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", string(moduleSource), "tag", largestTag, "tagList", tagsList)
-					currentSourceString := strings.Replace(string(moduleSource), refTag, largestTag, 1)
-					logrus.Debug("util :: updateTfFiles :: tag to updated :: ", "currentSource", moduleSource, "tag", largestTag, "tagList", tagsList)
+					log.Debug().Msgf("util :: updateTfFiles :: file to be updated :: %s", fileName)
+					log.Debug().Msgf("util :: updateTfFiles :: tag to updated :: currentSource:: %s :: tag :: %s :: tagList :: %s", moduleSource, largestTag, tagsList)
+					currentSourceString := strings.Replace(moduleSource, refTag, largestTag, 1)
+					log.Debug().Msgf("util :: updateTfFiles :: updatedModule :: %s", currentSourceString)
 					writeHclBlockToFile(file, block, fullPath, "source", currentSourceString)
 				}
 			}
 		}
 	}
-	logrus.Debug("util :: updateTfFiles :: sources :: ", "sources", sources)
+	log.Debug().Msgf("util :: updateTfFiles :: sources :: %s", sources)
 
 	return sources
 }
 
 func writeHclBlockToFile(file *hclwrite.File, block *hclwrite.Block, path string, attr string, value any) {
 	writeAttr := block.Body().SetAttributeValue(attr, cty.StringVal(value.(string)))
-	logrus.Debug("written to file", "writeAttr", string(writeAttr.Expr().BuildTokens(nil).Bytes()))
+	log.Debug().Msgf("written to file :: writeAttr :: %s", string(writeAttr.Expr().BuildTokens(nil).Bytes()))
 	writeFile, err := os.OpenFile(path, os.O_WRONLY, os.ModePerm)
 	Check(err, "util :: updateTfFiles :: open file error")
 	_, err = writeFile.Write(file.Bytes())
 	Check(err, "util :: updateTfFiles :: write to file error")
-	logrus.Debug("util :: updateTfFiles :: path of output", "output", writeFile.Name(), "file_bytes", string(file.Bytes()))
+	log.Debug().Msgf("util :: updateTfFiles :: path of output :: %s :: file_bytes :: %s", writeFile.Name(), string(file.Bytes()))
 	err = writeFile.Close()
 	CheckNonPanic(err, "util :: updateTfFiles :: unable to close file")
-	logrus.Debug("util :: updateTfFiles :: file closed")
+	log.Debug().Msgf("util :: updateTfFiles :: file closed")
 
 }
 
@@ -275,7 +275,7 @@ func getSemverGreaterThanCurrent(currentVersion string, versionToCheck string) b
 }
 
 func writeCommit(repoPath string) error {
-	logrus.Debug("util :: writeCommit :: opening repo")
+	log.Debug().Msgf("util :: writeCommit :: opening repo")
 
 	repo, err := git.PlainOpen(repoPath)
 	CheckNonPanic(err, "util :: writeCommit :: failed to open repo")
@@ -297,7 +297,7 @@ func writeCommit(repoPath string) error {
 
 	w, err := repo.Worktree()
 	Check(err, "util :: writeCommit :: worktree not fetched")
-	logrus.Debug("util :: writeCommit :: branch :: ", "branch", branch)
+	log.Debug().Msgf("util :: writeCommit :: branch :: %s", branch)
 
 	branchRefName := plumbing.NewBranchReferenceName(branch)
 	branchCoOpts := git.CheckoutOptions{
@@ -376,13 +376,13 @@ func setupTerraform(workingDir string) *tfexec.Terraform {
 
 	execPath, err := installer.Install(context.Background())
 	if err != nil {
-		logrus.Error("error installing Terraform: ", "err", err)
+		log.Error().Msgf("error installing Terraform: %s", err.Error())
 		return nil
 	}
 
 	tf, err := tfexec.NewTerraform(workingDir, execPath)
 	if err != nil {
-		logrus.Error("error running NewTerraform: ", "err", err)
+		log.Error().Msgf("error running NewTerraform: %s", err.Error())
 		return nil
 	}
 	return tf
