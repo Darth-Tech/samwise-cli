@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"os"
 	"regexp"
 	"strings"
@@ -80,7 +80,7 @@ func extractRefAndPath(sourceUrl string) (string, string, string) {
 	submodulePaths = removeUrlParams.ReplaceAllString(submodulePathsParams, "")
 	baseUrl = removeUrlParams.ReplaceAllString(baseUrl, "")
 	refTag = getTagFromUrl(sourceUrl)
-	logrus.Debug("readFiles :: extractRefAndPath :: ", "tag", refTag, "baseUrl", baseUrl, "submodulePaths", submodulePaths)
+	log.Debug().Msgf("readFiles :: extractRefAndPath ::  tag :: %s :: baseUrl :: %s :: submodulePaths :: %s", refTag, baseUrl, submodulePaths)
 
 	return baseUrl, refTag, submodulePaths
 }
@@ -111,13 +111,13 @@ func preProcessingSourceString(line string) (string, string, string) {
 
 	repoLink := extractModuleSource(line)
 	//repoLink := sourceLineCheck[1]
-	logrus.Debug("readFiles :: preProcessingSourceString :: Git repo link before:: " + repoLink)
+	log.Debug().Msg("readFiles :: preProcessingSourceString :: Git repo link before:: " + repoLink)
 	var sourceUrl, refTag, submodule string
 	if repoLink != "" {
 
 		sourceUrl, refTag, submodule = extractRefAndPath(repoLink)
 	}
-	logrus.Debug("readFiles :: preProcessingSourceString :: Git repo link after: " + sourceUrl)
+	log.Debug().Msg("readFiles :: preProcessingSourceString :: Git repo link after: " + sourceUrl)
 	return sourceUrl, refTag, submodule
 
 }
@@ -136,9 +136,9 @@ func processRepoLinksAndTags(path string) []map[string]string {
 
 		for _, match := range sourcesInFile {
 			match = cleanUpSourceString(match)
-			logrus.Debug("readFiles :: processRepoLinksAndTags :: match :: ", "match", match)
+			log.Debug().Msgf("readFiles :: processRepoLinksAndTags :: match :: %s", match)
 			repo, tag, submodule := preProcessingSourceString(match)
-			logrus.Debug("readFiles :: processRepoLinksAndTags :: ", "repo", repo, "tag", tag, "submodule", submodule)
+			log.Debug().Msgf("readFiles :: processRepoLinksAndTags :: repo :: %s :: tag :: %s :: submodule :: %s", repo, tag, submodule)
 			if repo != "" {
 				moduleRepoList = append(moduleRepoList, map[string]string{"repo": repo, "current_version": tag, "submodule": submodule, "file_name": fullPath})
 			}

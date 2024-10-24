@@ -17,12 +17,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
-	"log/slog"
-
 	"github.com/thundersparkf/samwise/cmd"
 )
 
 func main() {
-	slog.SetLogLoggerLevel(slog.LevelInfo)
 	cmd.Execute()
 }

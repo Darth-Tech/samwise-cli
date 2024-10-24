@@ -7,13 +7,13 @@ package cmd
 import (
 	"context"
 	"errors"
-	"github.com/sirupsen/logrus"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -30,10 +30,10 @@ var ciCmd = &cobra.Command{
 
 Not all those who don't update dependencies are lost.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		logrus.Debug("Ci stuff... in "+Path, "args", len(args))
-		_, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
-		logrus.Debug("output format: " + OutputFormat)
-		logrus.Debug("Params: ", "depth", strconv.Itoa(Depth), "rootDir", Path, "directoriesToIgnore", strings.Join(directoriesToIgnore, " "))
+		log.Debug().Msgf("Ci stuff... in %s with args count %d", Path, len(args))
+		//_, _, directoriesToIgnore, _, _ := getParamsForCheckForUpdatesCMD(cmd.Flags())
+		log.Debug().Msg("output format: " + OutputFormat)
+		log.Debug().Msgf("Params: Depth=%s, rootDir=%s, Path=%s", strconv.Itoa(Depth), Path, strings.Join(DirectoriesToIgnore, " "))
 		rootDir := fixTrailingSlashForPath(Path)
 		tf := setupTerraform(rootDir)
 		if tf == nil {
@@ -62,7 +62,7 @@ Not all those who don't update dependencies are lost.`,
 			return nil
 		})
 		Check(err, "ci :: command :: unable to walk the directories")
-		logrus.Debug("ci :: command :: filesUpdatedTotal", "filesUpdatedTotal", filesUpdatedTotal)
+		log.Debug().Msgf("ci :: command :: filesUpdatedTotal :: %s", strings.Join(filesUpdatedTotal, " "))
 		writeCommit(rootDir)
 
 	},
@@ -76,7 +76,7 @@ func createModuleVersionUpdates(path string) []string {
 		filesEdited := updateTfFiles(path, file.Name())
 		filesUpdated = append(filesUpdated, filesEdited...)
 	}
-	logrus.Debug("ci :: command :: files", "files", filesUpdated)
+	log.Debug().Msgf("ci :: command :: files :: %s", strings.Join(filesUpdated, " "))
 	return filesUpdated
 }
 
