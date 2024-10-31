@@ -5,17 +5,14 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hc-install/product"
 	"github.com/hashicorp/hc-install/releases"
@@ -36,7 +33,7 @@ type jsonReport struct {
 	RepoLink         string `json:"repo"`
 	CurrentVersion   string `json:"current_version,omitempty"`
 	UpdatesAvailable string `json:"updates_available,omitempty"`
-	LatestVersion    string `json:"latest_update,omitempty"`
+	LatestVersion    string `json:"latest_version,omitempty"`
 	FileName         string `json:"file_name"`
 	Error            string `json:"error,omitempty"`
 }
@@ -76,6 +73,7 @@ func generateReport(data []map[string]string, outputFilename string, outputForma
 
 func createCSVReportFile(data []map[string]string, path string, filename string) {
 	log.Debug().Msgf("creating " + path + "/" + filename + ".csv file")
+	log.Debug().Msgf("input data\n%v", data)
 	reportFilePath := path + "/" + filename + ".csv"
 	report, err := os.Create(reportFilePath)
 	Check(err, "util :: createCSVReportFile :: unable to create file ", reportFilePath)
@@ -90,22 +88,26 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 	defer writer.Flush()
 	headers := []string{"repo", "current_version", "file_name"}
 	if LatestVersion {
-		headers = append(headers, "latest_update")
+		headers = append(headers, "latest_version")
 	} else {
 		headers = append(headers, "updates_available")
 	}
 	err = writer.Write(headers)
 	Check(err, "unable to write headers to file", reportFilePath)
 	for _, row := range data {
-		if len(row["updates_available"]) > 0 || row["latest_update"] != "" {
-			if LatestVersion {
-				err = writer.Write([]string{row["repo"], row["current_version"], row["file_name"], row["latest_update"]})
-			} else {
+		log.Debug().Msgf("record: %v", row)
+		log.Debug().Msgf("record: %v", row)
+
+		if LatestVersion && len(row["latest_version"]) > 0 {
+			err = writer.Write([]string{row["repo"], row["current_version"], row["file_name"], row["latest_version"]})
+		} else {
+			if len(row["updates_available"]) > 0 {
 				err = writer.Write([]string{row["repo"], row["current_version"], row["file_name"], row["updates_available"]})
 			}
-			Check(err, "util :: CreateCSVReportFile :: unable to write record to file", row["repo"], row["current_version"], row["updates_available"], row["file_name"])
-			writer.Flush()
 		}
+		Check(err, "util :: CreateCSVReportFile :: unable to write record to file", row["repo"], row["current_version"], row["updates_available"], row["file_name"])
+		writer.Flush()
+
 	}
 	log.Debug().Msgf("created " + reportFilePath)
 
@@ -212,10 +214,11 @@ func updateTfFiles(path string, fileName string) []string {
 					log.Debug().Msgf("util :: updateTfFiles :: module data :: sourceUrl :: %s :: tag :: %s ", sourceUrl, refTag)
 					_, tagsList, _ := processGitRepo(sourceUrl, refTag)
 					largestTag := getGreatestSemverFromList(tagsList)
+					majorReleaseMismatch := isMajorReleaseUpgrade(refTag, largestTag)
 					if largestTag == "" {
 						continue
 					}
-					sources = append(sources, fullPath)
+					sources = append(sources, fullPath+";"+strconv.FormatBool(majorReleaseMismatch))
 					log.Debug().Msgf("util :: updateTfFiles :: file to be updated :: %s", fileName)
 					log.Debug().Msgf("util :: updateTfFiles :: tag to updated :: currentSource:: %s :: tag :: %s :: tagList :: %s", moduleSource, largestTag, tagsList)
 					currentSourceString := strings.Replace(moduleSource, refTag, largestTag, 1)
@@ -255,6 +258,7 @@ func getGreatestSemverFromList(tagsList string) string {
 			highestTag = tag
 		}
 	}
+
 	return highestTag
 }
 
@@ -274,87 +278,106 @@ func getSemverGreaterThanCurrent(currentVersion string, versionToCheck string) b
 
 }
 
-func writeCommit(repoPath string) error {
-	log.Debug().Msgf("util :: writeCommit :: opening repo")
-
-	repo, err := git.PlainOpen(repoPath)
-	CheckNonPanic(err, "util :: writeCommit :: failed to open repo")
-
-	//repo, err := git.Open(memory., memfs.New())
-	if CheckNonPanic(err, "util :: writeCommit :: unable to open repo") {
-		return err
+func isMajorReleaseUpgrade(currentVersion string, versionToCheck string) bool {
+	currentVersionTag, err := version.NewVersion(currentVersion)
+	if err != nil {
+		return false
 	}
-	currentTime := time.Now()
-	y, m, d := currentTime.Date()
-	branch := "upgrade/tf-modules-" + fmt.Sprintf("%d-%d-%d", y, m, d)
-	//err = repo.CreateBranch(&config.Branch{
-	//	Name: "upgrade/tf-modules-" + time.DateOnly,
-	//})
-
-	if CheckNonPanic(err, "util :: writeCommit :: unable to create upgrade/tf-modules-"+time.DateOnly) {
-		return err
+	versionToCheckTag, err := version.NewVersion(versionToCheck)
+	if err != nil {
+		return false
 	}
-
-	w, err := repo.Worktree()
-	Check(err, "util :: writeCommit :: worktree not fetched")
-	log.Debug().Msgf("util :: writeCommit :: branch :: %s", branch)
-
-	branchRefName := plumbing.NewBranchReferenceName(branch)
-	branchCoOpts := git.CheckoutOptions{
-		Branch: plumbing.ReferenceName(branchRefName),
-		Create: true,
+	versionToCheckTagMajorVersion := versionToCheckTag.Segments()[0]
+	currentVersionTagMajorVersion := currentVersionTag.Segments()[0]
+	if versionToCheckTagMajorVersion == currentVersionTagMajorVersion {
+		return false
 	}
+	return true
 
-	if err := w.Checkout(&branchCoOpts); err != nil {
-		//Check(err, fmt.Sprintf("local checkout of branch '%s' failed, will attempt to fetch remote branch of same name.", branch))
-
-		/*mirrorRemoteBranchRefSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)
-		err = fetchOrigin(r, mirrorRemoteBranchRefSpec)
-		CheckIfError(err)
-
-		err = w.Checkout(&branchCoOpts)
-		CheckIfError(err)
-		*/
-		branchCoOpts := git.CheckoutOptions{
-			Branch: plumbing.ReferenceName(branchRefName),
-			Create: false,
-		}
-		err = w.Checkout(&branchCoOpts)
-		Check(err, "util :: writeCommit :: failed checkout of branch")
-
-	}
-	_, err = w.Add(".")
-	Check(err, "util :: writeCommit :: unable to add files")
-
-	_, err = w.Status()
-	if CheckNonPanic(err, "util :: writeCommit :: unable to fetch status") {
-		return err
-	}
-
-	// Commits the current staging area to the repository, with the new file
-	// just created. We should provide the object.Signature of Author of the
-	// commit Since version 5.0.1, we can omit the Author signature, being read
-	// from the git config files.
-	commit, err := w.Commit("[updates] | updates the terraform modules to the latest version upstream", &git.CommitOptions{
-		Author: &object.Signature{
-			Name: "samwise",
-			When: time.Now(),
-		},
-	})
-
-	if CheckNonPanic(err, "util :: writeCommit :: unable to add") {
-		return err
-	}
-
-	// Prints the current HEAD to verify that all worked well.
-	_, err = repo.CommitObject(commit)
-	if CheckNonPanic(err, "util :: writeCommit :: unable to add") {
-		return err
-	}
-	//repo.Push(&git.PushOptions{})
-	return nil
 }
 
+/*
+	func writeCommit(repoPath string) error {
+		log.Debug().Msgf("util :: writeCommit :: opening repo")
+
+		repo, err := git.PlainOpen(repoPath)
+		CheckNonPanic(err, "util :: writeCommit :: failed to open repo")
+
+		//repo, err := git.Open(memory., memfs.New())
+		if CheckNonPanic(err, "util :: writeCommit :: unable to open repo") {
+			return err
+		}
+		currentTime := time.Now()
+		y, m, d := currentTime.Date()
+		branch := "upgrade/tf-modules-" + fmt.Sprintf("%d-%d-%d", y, m, d)
+		//err = repo.CreateBranch(&config.Branch{
+		//	Name: "upgrade/tf-modules-" + time.DateOnly,
+		//})
+
+		if CheckNonPanic(err, "util :: writeCommit :: unable to create upgrade/tf-modules-"+time.DateOnly) {
+			return err
+		}
+
+		w, err := repo.Worktree()
+		Check(err, "util :: writeCommit :: worktree not fetched")
+		log.Debug().Msgf("util :: writeCommit :: branch :: %s", branch)
+
+		branchRefName := plumbing.NewBranchReferenceName(branch)
+		branchCoOpts := git.CheckoutOptions{
+			Branch: plumbing.ReferenceName(branchRefName),
+			Create: true,
+		}
+
+		if err := w.Checkout(&branchCoOpts); err != nil {
+			//Check(err, fmt.Sprintf("local checkout of branch '%s' failed, will attempt to fetch remote branch of same name.", branch))
+
+			//mirrorRemoteBranchRefSpec := fmt.Sprintf("refs/heads/%s:refs/heads/%s", branch, branch)
+			//err = fetchOrigin(r, mirrorRemoteBranchRefSpec)
+			//CheckIfError(err)
+
+			//err = w.Checkout(&branchCoOpts)
+			//CheckIfError(err)
+
+			branchCoOpts := git.CheckoutOptions{
+				Branch: plumbing.ReferenceName(branchRefName),
+				Create: false,
+			}
+			err = w.Checkout(&branchCoOpts)
+			Check(err, "util :: writeCommit :: failed checkout of branch")
+
+		}
+		_, err = w.Add(".")
+		Check(err, "util :: writeCommit :: unable to add files")
+
+		_, err = w.Status()
+		if CheckNonPanic(err, "util :: writeCommit :: unable to fetch status") {
+			return err
+		}
+
+		// Commits the current staging area to the repository, with the new file
+		// just created. We should provide the object.Signature of Author of the
+		// commit Since version 5.0.1, we can omit the Author signature, being read
+		// from the git config files.
+		commit, err := w.Commit("[updates] | updates the terraform modules to the latest version upstream", &git.CommitOptions{
+			Author: &object.Signature{
+				Name: "samwise",
+				When: time.Now(),
+			},
+		})
+
+		if CheckNonPanic(err, "util :: writeCommit :: unable to add") {
+			return err
+		}
+
+		// Prints the current HEAD to verify that all worked well.
+		_, err = repo.CommitObject(commit)
+		if CheckNonPanic(err, "util :: writeCommit :: unable to add") {
+			return err
+		}
+		//repo.Push(&git.PushOptions{})
+		return nil
+	}
+*/
 func removeDuplicateStr(strSlice []string) []string {
 	allKeys := make(map[string]bool)
 	list := []string{}
@@ -367,11 +390,11 @@ func removeDuplicateStr(strSlice []string) []string {
 	return list
 }
 
-func setupTerraform(workingDir string) *tfexec.Terraform {
+func setupTerraform(workingDir string, tfVersion string) *tfexec.Terraform {
 
 	installer := &releases.ExactVersion{
 		Product: product.Terraform,
-		Version: version.Must(version.NewVersion("1.0.6")),
+		Version: version.Must(version.NewVersion(tfVersion)),
 	}
 
 	execPath, err := installer.Install(context.Background())
