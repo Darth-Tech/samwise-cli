@@ -35,7 +35,7 @@ Not all those who don't update dependencies are lost.`,
 		log.Debug().Msg("output format: " + OutputFormat)
 		log.Debug().Msgf("Params: Depth=%s, rootDir=%s, Path=%s", strconv.Itoa(Depth), Path, strings.Join(DirectoriesToIgnore, " "))
 		rootDir := fixTrailingSlashForPath(Path)
-		tf := setupTerraform(rootDir)
+		tf := setupTerraform(rootDir, "1.9.8")
 		if tf == nil {
 			return
 		}
@@ -63,7 +63,7 @@ Not all those who don't update dependencies are lost.`,
 		})
 		Check(err, "ci :: command :: unable to walk the directories")
 		log.Debug().Msgf("ci :: command :: filesUpdatedTotal :: %s", strings.Join(filesUpdatedTotal, " "))
-		writeCommit(rootDir)
+		//writeCommit(rootDir)
 
 	},
 }

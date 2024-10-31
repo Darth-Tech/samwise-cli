@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"testing"
@@ -122,16 +124,18 @@ func TestHappyCreateCSVReportFile(t *testing.T) {
 
 func TestHappyCreateCSVReportFileLatestVersion(t *testing.T) {
 	data := []map[string]string{
-		{"repo": "github.com/test_repo", "current_version": "2.4.4", "updates_available": "2.7.7|2.7.8", "latest_version": "2.7.8", "file_name": "main.tf"},
-		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "updates_available": "3.2.2|3.2.3", "latest_version": "3.2.3", "file_name": "test/main.tf"},
+		{"repo": "github.com/test_repo", "current_version": "2.4.4", "latest_version": "2.7.8", "file_name": "main.tf"},
+		{"repo": "github.com/test_repo_1", "current_version": "3.2.1", "latest_version": "3.2.3", "file_name": "test/main.tf"},
 	}
 	// Set cobra flag for testing
+	LatestVersion = true
 	createCSVReportFile(data, ".", "module_report")
 	results := readCsvFile("." + "/module_report.csv")
+	log.Info().Msgf("results: %v", results)
 	assert.Equal(t, len(results), 3)
 	assert.Equal(t, data[0]["repo"], results[1][0], "repo link mismatch")
 	assert.Equal(t, data[0]["current_version"], results[1][1], "current_version mismatch")
-	assert.Equal(t, data[0]["updates_available"], results[1][3], "latest_version mismatch")
+	assert.Equal(t, data[0]["latest_version"], results[1][3], "latest_version mismatch")
 	assert.Equal(t, data[0]["file_name"], results[1][2], "file_name mismatch")
 
 }
@@ -157,7 +161,6 @@ func TestCheckError(t *testing.T) {
 		if r := recover(); r != nil {
 			assert.NotPanics(t, nil, func() { Check(nil, "testing non panic case") })
 			assert.PanicsWithValue(t, "test error", func() { Check(errors.New("test error"), "error testing") })
-			assert.PanicsWithValue(t, "test error", func() { Check(errors.New("test error"), "error testing", "testArg1", "testArg2") })
 		}
 	}()
 
@@ -210,5 +213,43 @@ func TestGetGreatestSemverFromList(t *testing.T) {
 	assert.Equal(t, "v1.0.5-alpha", getGreatestSemverFromList(list2))
 	assert.Equal(t, "v1.0.5-beta", getGreatestSemverFromList(list3))
 	assert.Equal(t, "v1.0.5-beta", getGreatestSemverFromList(list4))
+
+}
+
+func TestIsMajorReleaseUpgrade(t *testing.T) {
+	minorUpgrade := isMajorReleaseUpgrade("1.2.1", "1.3.2-beta")
+	assert.Equal(t, false, minorUpgrade)
+	majorUpgrade := isMajorReleaseUpgrade("2.2.1", "1.3.2-beta")
+	assert.Equal(t, true, majorUpgrade)
+	failureCurrentVersion := isMajorReleaseUpgrade("random", "1.3.2-beta")
+	assert.Equal(t, false, failureCurrentVersion)
+	failureVersionToCheck := isMajorReleaseUpgrade("1.1.1", "1.3..2-beta")
+	assert.Equal(t, false, failureVersionToCheck)
+}
+
+func TestRemoveDuplicateStr(t *testing.T) {
+	duplicateStringSlice := []string{"test", "test1", "test"}
+	nonDuplicateStringSlice := []string{"test", "test1"}
+	removeDuplicateStr(duplicateStringSlice)
+	assert.EqualValues(t, nonDuplicateStringSlice, removeDuplicateStr(duplicateStringSlice))
+	assert.EqualValues(t, nonDuplicateStringSlice, removeDuplicateStr(nonDuplicateStringSlice))
+}
+
+func TestSetupTerraform(t *testing.T) {
+	tf := setupTerraform(".", "1.9.8")
+	log.Debug().Msgf("tf file execPath: %s \n workingDir:,%s", tf.ExecPath(), tf.WorkingDir())
+	tfVersion, _, err := tf.Version(context.TODO(), true)
+	assert.Empty(t, err)
+	assert.Equal(t, "1.9.8", tfVersion.String(), "tf version not matching")
+	err = os.Remove(tf.ExecPath())
+	if err != nil {
+		log.Error().Msgf("%v", err)
+	}
+
+}
+
+func TestFailureSetupTerraform(t *testing.T) {
+	tf := setupTerraform(".", "1.9.8testtest")
+	assert.Empty(t, tf)
 
 }

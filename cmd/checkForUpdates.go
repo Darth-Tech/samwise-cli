@@ -16,7 +16,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var modulesListTotal []map[string]string
@@ -25,6 +24,7 @@ var Path string
 var OutputFormat string
 var OutputFilename string
 var LatestVersion bool
+var MajorUpgrade bool
 var Depth int
 var DirectoriesToIgnore []string
 
@@ -124,15 +124,19 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 				})
 			}
 			if len(tagsList) > 0 {
+				latestVersionString := getGreatestSemverFromList(tagsList)
 				if latestVersion {
-					module["latest_update"] = getGreatestSemverFromList(tagsList)
+					module["latest_version"] = latestVersionString
 				} else {
 					module["updates_available"] = tagsList
-
+				}
+				isModuleUpgradePriorityHigh := isMajorReleaseUpgrade(module["current_version"], latestVersionString)
+				if MajorUpgrade && isModuleUpgradePriorityHigh {
+					module["repo"] = module["repo"] + "[MAJOR UPGRADE AVAILABLE]"
 				}
 				listWritten = append(listWritten, moduleUsed)
 			}
-			log.Debug().Msgf("checkForUpdates :: checkForModuleSourceUpdates :: path :: repo :: %s :: current :: %s :: updates_available :: %s :: latest_update :: %s", module["repo"], module["current_version"], module["updates_available"], module["latest_update"])
+			log.Debug().Msgf("checkForUpdates :: checkForModuleSourceUpdates :: path :: repo :: %s :: current :: %s :: updates_available :: %s :: latest_update :: %s", module["repo"], module["current_version"], module["updates_available"], module["latest_version"])
 
 		}
 	}
@@ -141,19 +145,19 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 }
 
 // Fixed return of params depth, rootDir, directoriesToIgnore, output, outputFilename
-func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string, string, string) {
-	depth, err := flags.GetInt("depth")
-	Check(err, "checkForUpdates :: command :: depth argument error")
-	rootDir, err := flags.GetString("path")
-	Check(err, "checkForUpdates :: command :: path argument error")
-	directoriesToIgnore, err := flags.GetStringArray("ignore")
-	Check(err, "checkForUpdates :: command :: ignore argument error")
-	output, err := flags.GetString("output")
-	Check(err, "checkForUpdates :: command :: output argument error")
-	outputFilename, err := flags.GetString("output-filename")
-	Check(err, "checkForUpdates :: command :: output-filename argument error")
-	return depth, rootDir, directoriesToIgnore, output, outputFilename
-}
+//func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string, string, string) {
+//	depth, err := flags.GetInt("depth")
+//	Check(err, "checkForUpdates :: command :: depth argument error")
+//	rootDir, err := flags.GetString("path")
+//	Check(err, "checkForUpdates :: command :: path argument error")
+//	directoriesToIgnore, err := flags.GetStringArray("ignore")
+//	Check(err, "checkForUpdates :: command :: ignore argument error")
+//	output, err := flags.GetString("output")
+//	Check(err, "checkForUpdates :: command :: output argument error")
+//	outputFilename, err := flags.GetString("output-filename")
+//	Check(err, "checkForUpdates :: command :: output-filename argument error")
+//	return depth, rootDir, directoriesToIgnore, output, outputFilename
+//}
 
 func init() {
 	cobra.OnInitialize(initConfig)
@@ -168,6 +172,7 @@ func init() {
 	checkForUpdatesCmd.PersistentFlags().StringVarP(&OutputFormat, "output", "o", "csv", "Output format. Supports \"csv\" and \"json\". Default value is csv.")
 	checkForUpdatesCmd.PersistentFlags().StringVarP(&OutputFilename, "output-filename", "f", "module_report", "Output file name.")
 	checkForUpdatesCmd.Flags().BoolVar(&LatestVersion, "latest-version", false, "Include only latest version in report.")
+	checkForUpdatesCmd.Flags().BoolVar(&MajorUpgrade, "major", false, "Highlight modules that have a major version update in report.")
 
 	err := checkForUpdatesCmd.MarkPersistentFlagRequired("path")
 	if err != nil {
