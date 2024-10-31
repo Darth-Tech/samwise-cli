@@ -16,7 +16,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var modulesListTotal []map[string]string
@@ -125,12 +124,13 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 				})
 			}
 			if len(tagsList) > 0 {
+				latestVersionString := getGreatestSemverFromList(tagsList)
 				if latestVersion {
-					module["latest_version"] = getGreatestSemverFromList(tagsList)
+					module["latest_version"] = latestVersionString
 				} else {
 					module["updates_available"] = tagsList
 				}
-				isModuleUpgradePriorityHigh := isMajorReleaseUpgrade(module["current_version"], module["latest_version"])
+				isModuleUpgradePriorityHigh := isMajorReleaseUpgrade(module["current_version"], latestVersionString)
 				if MajorUpgrade && isModuleUpgradePriorityHigh {
 					module["repo"] = module["repo"] + "[MAJOR UPGRADE AVAILABLE]"
 				}
@@ -145,19 +145,19 @@ func checkForModuleSourceUpdates(path string, latestVersion bool) ([]map[string]
 }
 
 // Fixed return of params depth, rootDir, directoriesToIgnore, output, outputFilename
-func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string, string, string) {
-	depth, err := flags.GetInt("depth")
-	Check(err, "checkForUpdates :: command :: depth argument error")
-	rootDir, err := flags.GetString("path")
-	Check(err, "checkForUpdates :: command :: path argument error")
-	directoriesToIgnore, err := flags.GetStringArray("ignore")
-	Check(err, "checkForUpdates :: command :: ignore argument error")
-	output, err := flags.GetString("output")
-	Check(err, "checkForUpdates :: command :: output argument error")
-	outputFilename, err := flags.GetString("output-filename")
-	Check(err, "checkForUpdates :: command :: output-filename argument error")
-	return depth, rootDir, directoriesToIgnore, output, outputFilename
-}
+//func getParamsForCheckForUpdatesCMD(flags *pflag.FlagSet) (int, string, []string, string, string) {
+//	depth, err := flags.GetInt("depth")
+//	Check(err, "checkForUpdates :: command :: depth argument error")
+//	rootDir, err := flags.GetString("path")
+//	Check(err, "checkForUpdates :: command :: path argument error")
+//	directoriesToIgnore, err := flags.GetStringArray("ignore")
+//	Check(err, "checkForUpdates :: command :: ignore argument error")
+//	output, err := flags.GetString("output")
+//	Check(err, "checkForUpdates :: command :: output argument error")
+//	outputFilename, err := flags.GetString("output-filename")
+//	Check(err, "checkForUpdates :: command :: output-filename argument error")
+//	return depth, rootDir, directoriesToIgnore, output, outputFilename
+//}
 
 func init() {
 	cobra.OnInitialize(initConfig)
