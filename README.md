@@ -81,12 +81,14 @@ Before starting to use the CLI, ensure the following configuration is setup
 git_key:
 git_username:
 git_ssh_key_path:
+git_ssh_key_passphrase:
 ```
 or as **environment variables:**
 ```
 SAMWISE_CLI_GIT_KEY
 SAMWISE_CLI_GIT_USERNAME
 SAMWISE_CLI_GIT_SSH_KEY_PATH
+SAMWISE_CLI_GIT_SSH_KEY_PASSPHRASE
 
 ```
 Available Commands:
