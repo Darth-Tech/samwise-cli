@@ -5,10 +5,11 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"testing"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
@@ -236,11 +237,11 @@ func TestRemoveDuplicateStr(t *testing.T) {
 }
 
 func TestSetupTerraform(t *testing.T) {
-	tf := setupTerraform(".", "1.9.8")
+	tf := setupTerraform(".", "1.17.0")
 	log.Debug().Msgf("tf file execPath: %s \n workingDir:,%s", tf.ExecPath(), tf.WorkingDir())
 	tfVersion, _, err := tf.Version(context.TODO(), true)
 	assert.Empty(t, err)
-	assert.Equal(t, "1.9.8", tfVersion.String(), "tf version not matching")
+	assert.Equal(t, "1.17.0", tfVersion.String(), "tf version not matching")
 	err = os.Remove(tf.ExecPath())
 	if err != nil {
 		log.Error().Msgf("%v", err)

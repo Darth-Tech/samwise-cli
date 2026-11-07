@@ -5,7 +5,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -13,9 +12,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/hashicorp/go-version"
+	install "github.com/hashicorp/hc-install"
 	"github.com/hashicorp/hc-install/product"
 	"github.com/hashicorp/hc-install/releases"
+	"github.com/hashicorp/hc-install/src"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -49,7 +52,7 @@ func Check(err error, message string, args ...any) {
 func CheckNonPanic(err error, message string, args ...any) bool {
 	if err != nil {
 		log.Error().Msgf(message, "errorArgs", args)
-		log.Error().Msgf(err.Error())
+		log.Error().Msgf("%v", err.Error())
 		return true
 	}
 	return false
@@ -72,7 +75,7 @@ func generateReport(data []map[string]string, outputFilename string, outputForma
 }
 
 func createCSVReportFile(data []map[string]string, path string, filename string) {
-	log.Debug().Msgf("creating " + path + "/" + filename + ".csv file")
+	log.Debug().Msgf("creating "+path+"/"+filename+".csv file", "")
 	log.Debug().Msgf("input data\n%v", data)
 	reportFilePath := path + "/" + filename + ".csv"
 	report, err := os.Create(reportFilePath)
@@ -109,7 +112,7 @@ func createCSVReportFile(data []map[string]string, path string, filename string)
 		writer.Flush()
 
 	}
-	log.Debug().Msgf("created " + reportFilePath)
+	log.Debug().Msgf("created file %s", reportFilePath)
 
 }
 
@@ -144,7 +147,7 @@ func createJSONReportFile(data []map[string]string, path string, filename string
 	Check(err, "util :: createJSONReportFile :: unable to marshal modules data")
 	var reportJsonObject []jsonReport
 	err = json.Unmarshal(reportString, &reportJsonObject)
-	log.Debug().Msgf("util :: createJSONReportFile :: reportString :: " + string(reportString))
+	log.Debug().Msgf("util :: createJSONReportFile :: reportString :: %s", string(reportString))
 	Check(err, "util :: createJSONReportFile :: unable unmarshal into output format")
 	var nonEmptyRecords []jsonReport
 	for _, value := range reportJsonObject {
@@ -392,12 +395,16 @@ func removeDuplicateStr(strSlice []string) []string {
 
 func setupTerraform(workingDir string, tfVersion string) *tfexec.Terraform {
 
-	installer := &releases.ExactVersion{
-		Product: product.Terraform,
-		Version: version.Must(version.NewVersion(tfVersion)),
-	}
+	installer := install.NewInstaller()
 
-	execPath, err := installer.Install(context.Background())
+	version := version.Must(version.NewVersion(tfVersion))
+
+	execPath, err := installer.Install(context.Background(), []src.Installable{
+		&releases.ExactVersion{
+			Product: product.Terraform,
+			Version: version,
+		},
+	})
 	if err != nil {
 		log.Error().Msgf("error installing Terraform: %s", err.Error())
 		return nil

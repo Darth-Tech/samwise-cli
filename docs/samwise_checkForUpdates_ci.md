@@ -31,7 +31,7 @@ samwise checkForUpdates ci [flags]
   -o, --output string            Output format. Supports "csv" and "json". Default value is csv. (default "csv")
   -f, --output-filename string   Output file name. (default "module_report")
       --path string              The path for directory containing terraform code to extract modules from. (default "p")
-  -v, --verbosity string         Log level (debug, info, warn, error, fatal, panic (default "warning")
+  -v, --verbosity string         Log level (debug, info, warn, error, fatal, panic (default "warn")
 ```
 
 ### SEE ALSO

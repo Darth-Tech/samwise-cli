@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"errors"
-	"github.com/rs/zerolog/log"
+	"net/url"
 	"os"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -28,10 +30,15 @@ func gitAuthGenerator(url string) transport.AuthMethod {
 	log.Debug().Msg("using ssh auth")
 	username := strings.Split(url, "@")[0]
 	sshPath := viper.GetString("git_ssh_key_path")
-	log.Debug().Msg("readGitFiles :: gitAuthGenerator :: " + sshPath)
+	sshPassphrase := viper.GetString("git_ssh_key_passphrase")
+	log.Debug().Msg("readGitFiles :: gitAuthGenerator :: " + sshPath + sshPassphrase)
 	sshKey, err := os.ReadFile(sshPath)
-	Check(err, "filename "+sshPath)
-	signer, err := ssh.ParsePrivateKey(sshKey)
+	Check(err, "filename ")
+	var signer ssh.Signer
+	signer, err = ssh.ParsePrivateKey(sshKey)
+	if strings.Contains(strings.ToLower(err.Error()), "this private key is passphrase protected") {
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(sshKey, []byte(sshPassphrase))
+	}
 	Check(err, "signer key died")
 	publicKey := &sshgit.PublicKeys{User: username, Signer: signer, HostKeyCallbackHelper: sshgit.HostKeyCallbackHelper{
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
@@ -46,14 +53,15 @@ func parseGitUrl(source string) string {
 		return source
 	}
 	source = strings.Replace(source, "git::", "", 1)
-	endpointUrl, err := transport.NewEndpoint(source)
-	log.Debug().Msgf("readGitFiles :: parseGitUrl :: endpoint result :: host :: %s :: path :: %s :: protocol :: %s :: ", endpointUrl.Host, endpointUrl.Path, endpointUrl.Protocol)
+	log.Debug().Msg("readGitFiles :: parseGitUrl :: source :: 2 " + source)
+	endpointUrl, err := url.Parse(source)
+	log.Debug().Msgf("readGitFiles :: parseGitUrl :: endpoint result :: host :: %s :: path :: %s :: protocol :: %s :: ", endpointUrl.Host, endpointUrl.Path, endpointUrl.Scheme)
 	if CheckNonPanic(err, "unable to parse git url") {
 		return ""
 	}
 
-	if endpointUrl.Protocol == "" || endpointUrl.Protocol == "file" {
-		return "https://" + strings.Replace(endpointUrl.String(), "file://", "", 1)
+	if endpointUrl.Host == "" && endpointUrl.Path != "" {
+		return "https://" + source
 	}
 	return endpointUrl.String()
 }
