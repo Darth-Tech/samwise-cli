@@ -2,6 +2,7 @@ name: Go Test
 on: [push]
 env:
   SAMWISE_CLI_GIT_SSH_KEY_PATH: ${{secrets.SAMWISE_CLI_GIT_SSH_KEY_PATH}}
+  SAMWISE_CLI_GIT_SSH_KEY_PASSPHRASE: ${{secrets.SAMWISE_CLI_GIT_SSH_KEY_PASSPHRASE}}
 jobs:
     test:
         runs-on: ubuntu-latest
