@@ -53,7 +53,7 @@ func parseGitUrl(source string) string {
 		return source
 	}
 	source = strings.Replace(source, "git::", "", 1)
-	log.Debug().Msg("readGitFiles :: parseGitUrl :: source :: 2 " + source)
+	log.Debug().Msg("readGitFiles :: parseGitUrl :: source :: " + source)
 	endpointUrl, err := url.Parse(source)
 	log.Debug().Msgf("readGitFiles :: parseGitUrl :: endpoint result :: host :: %s :: path :: %s :: protocol :: %s :: ", endpointUrl.Host, endpointUrl.Path, endpointUrl.Scheme)
 	if CheckNonPanic(err, "unable to parse git url") {
