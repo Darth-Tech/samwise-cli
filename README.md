@@ -5,6 +5,8 @@ A CLI application to accompany on your terraform module journey and sharing your
 
 [![Go Test](https://github.com/thundersparkf/samwise-cli/actions/workflows/go-test-workflow.yml/badge.svg)](https://github.com/thundersparkf/samwise-cli/actions/workflows/go-test-workflow.yml)
 
+[![goreleaser](https://github.com/Darth-Tech/samwise-cli/actions/workflows/go-publish-workflow.yml/badge.svg)](https://github.com/Darth-Tech/samwise-cli/actions/workflows/go-publish-workflow.yml)
+
 ```
                        \ : /
                     '-: __ :-'
