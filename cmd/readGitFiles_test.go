@@ -9,15 +9,15 @@ import (
 	"github.com/thundersparkf/samwise/cmd/errorHandlers"
 )
 
-/* func TestGitAuthenticationGenerator(t *testing.T) {
+/*func TestGitAuthenticationGenerator(t *testing.T) {
 	// TODO: Add tests to check key present and getting ssh type for urls with @
 	// TODO: Add tests for key not present panic
 	// TODO: Add tests for @ not present in url and username and password retrieved
 	// TODO: Add tests for user and password not passed so they return empty strings
 	// TODO: Incorrect format private key parsing panic
-	//viper.Set("git_ssh_key_path", "/Users/agastya/.ssh/github-thundersparkf")
-	//viper.Set("git_key", "test")
-	//viper.Set("git_user", "test")
+	viper.Set("git_ssh_key_path", "/Users/agastya/.ssh/github-thundersparkf")
+	viper.Set("git_key", "test")
+	viper.Set("git_user", "test")
 	sshAuth := gitAuthGenerator("git@github.com:Darth-Tech/stack.git")
 	fmt.Println(sshAuth.Name())
 	// sshAuthProtocol := gitAuthGenerator("ssh://git@github.com:Darth-Tech/stack.git")
@@ -30,7 +30,7 @@ import (
 	// malformed := gitAuthGenerator("github.com:Darth-Tech/stack.git")
 	// empty := gitAuthGenerator("")
 
-} */
+}*/
 
 func TestParseGitUrl(t *testing.T) {
 	sshAuthProtocol := parseGitUrl("ssh://git@github.com:Darth-Tech/stack.git")
@@ -73,6 +73,7 @@ func TestHappyClonePublicRepo(t *testing.T) {
 }
 
 func TestHappySSHClonePublicRepo(t *testing.T) {
+	viper.Set("git_ssh_key_passphrase", os.Getenv("SAMWISE_CLI_GIT_SSH_KEY_PASSPHRASE"))
 	viper.Set("git_ssh_key_path", os.Getenv("SAMWISE_CLI_GIT_SSH_KEY_PATH"))
 	r, err := cloneRepo("git@github.com:Darth-Tech/stack.git")
 	assert.NotEmpty(t, r, "readGit_files.go :: cloneRepo :: repository is nil")

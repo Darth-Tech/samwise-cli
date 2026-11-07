@@ -31,6 +31,7 @@ samwise checkForUpdates --path=[Target folder to check module versions] [flags]
   -h, --help                     help for checkForUpdates
   -i, --ignore strings           Directories to ignore when searching for the One Ring(modules and their sources. (default [.git,.idea])
       --latest-version           Include only latest version in report.
+      --major                    Highlight modules that have a major version update in report.
   -o, --output string            Output format. Supports "csv" and "json". Default value is csv. (default "csv")
   -f, --output-filename string   Output file name. (default "module_report")
       --path string              The path for directory containing terraform code to extract modules from. (default "p")
@@ -40,7 +41,7 @@ samwise checkForUpdates --path=[Target folder to check module versions] [flags]
 
 ```
       --config string      config file (default is $HOME/.samwise.yaml)
-  -v, --verbosity string   Log level (debug, info, warn, error, fatal, panic (default "warning")
+  -v, --verbosity string   Log level (debug, info, warn, error, fatal, panic (default "warn")
 ```
 
 ### SEE ALSO
