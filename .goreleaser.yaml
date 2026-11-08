@@ -18,7 +18,7 @@ release:
 universal_binaries:
     - replace: true
 
-brews:
+homebrew_casks:
     -
         name: samwise-cli
         homepage: "https://github.com/Darth-Tech/samwise-cli"
